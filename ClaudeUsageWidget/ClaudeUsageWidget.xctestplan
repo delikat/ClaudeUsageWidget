@@ -26,8 +26,8 @@
     {
       "target" : {
         "containerPath" : "container:ClaudeUsageWidgetPackage",
-        "identifier" : "ClaudeUsageWidgetFeatureTests",
-        "name" : "ClaudeUsageWidgetFeatureTests"
+        "identifier" : "SharedTests",
+        "name" : "SharedTests"
       }
     }
   ],

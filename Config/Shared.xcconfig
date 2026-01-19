@@ -35,6 +35,16 @@ CODE_SIGN_IDENTITY = -
 DEVELOPMENT_TEAM =
 
 // ==========================================
+// Build Settings
+// ==========================================
+ALWAYS_SEARCH_USER_PATHS = NO
+
+// ==========================================
+// App Icon
+// ==========================================
+ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon
+
+// ==========================================
 // Entitlements
 // ==========================================
 CODE_SIGN_ENTITLEMENTS = Config/ClaudeUsageWidget.entitlements
