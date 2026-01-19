@@ -20,6 +20,7 @@ public struct CachedUsage: Codable, Sendable {
         case networkError
         case invalidToken
         case apiError
+        case invalidCredentialsFormat
     }
 
     public init(

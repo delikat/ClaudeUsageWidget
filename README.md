@@ -15,8 +15,8 @@ ClaudeUsageWidget/
 │   └── ClaudeUsageWidget.xctestplan            # Test configuration
 ├── ClaudeUsageWidgetPackage/                   # 🚀 Primary development area
 │   ├── Package.swift                   # Package configuration
-│   ├── Sources/ClaudeUsageWidgetFeature/       # Your feature code
-│   └── Tests/ClaudeUsageWidgetFeatureTests/    # Unit tests
+│   ├── Sources/Shared/                         # Your feature code
+│   └── Tests/SharedTests/                      # Unit tests
 └── ClaudeUsageWidgetUITests/                   # UI automation tests
 ```
 
@@ -24,7 +24,7 @@ ClaudeUsageWidget/
 
 ### Workspace + SPM Structure
 - **App Shell**: `ClaudeUsageWidget/` contains minimal app lifecycle code
-- **Feature Code**: `ClaudeUsageWidgetPackage/Sources/ClaudeUsageWidgetFeature/` is where most development happens
+- **Feature Code**: `ClaudeUsageWidgetPackage/Sources/Shared/` is where most development happens
 - **Separation**: Business logic lives in the SPM package, app target just imports and displays it
 
 ### Buildable Folders (Xcode 16)
@@ -38,7 +38,7 @@ The app is sandboxed by default with basic file access permissions. Modify `Clau
 ## Development Notes
 
 ### Code Organization
-Most development happens in `ClaudeUsageWidgetPackage/Sources/ClaudeUsageWidgetFeature/` - organize your code as you prefer.
+Most development happens in `ClaudeUsageWidgetPackage/Sources/Shared/` - organize your code as you prefer.
 
 ### Public API Requirements
 Types exposed to the app target need `public` access:
@@ -60,14 +60,14 @@ dependencies: [
 ],
 targets: [
     .target(
-        name: "ClaudeUsageWidgetFeature",
+        name: "Shared",
         dependencies: ["SomePackage"]
     ),
 ]
 ```
 
 ### Test Structure
-- **Unit Tests**: `ClaudeUsageWidgetPackage/Tests/ClaudeUsageWidgetFeatureTests/` (Swift Testing framework)
+- **Unit Tests**: `ClaudeUsageWidgetPackage/Tests/SharedTests/` (Swift Testing framework)
 - **UI Tests**: `ClaudeUsageWidgetUITests/` (XCUITest framework)
 - **Test Plan**: `ClaudeUsageWidget.xctestplan` coordinates all tests
 
@@ -117,7 +117,7 @@ struct ClaudeUsageWidgetApp: App {
 To include assets in your feature package:
 ```swift
 .target(
-    name: "ClaudeUsageWidgetFeature",
+    name: "Shared",
     dependencies: [],
     resources: [.process("Resources")]
 )

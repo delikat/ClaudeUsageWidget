@@ -219,6 +219,8 @@ struct ErrorView: View {
             return "wifi.slash"
         case .invalidToken:
             return "key.slash"
+        case .invalidCredentialsFormat:
+            return "doc.questionmark"
         default:
             return "exclamationmark.triangle.fill"
         }
@@ -232,6 +234,8 @@ struct ErrorView: View {
             return "Token Expired"
         case .apiError:
             return "API Error"
+        case .invalidCredentialsFormat:
+            return "Invalid Credentials"
         default:
             return "Setup Required"
         }
@@ -245,6 +249,8 @@ struct ErrorView: View {
             return "Re-login to Claude Code"
         case .apiError:
             return "Try again later"
+        case .invalidCredentialsFormat:
+            return "Re-install Claude Code"
         default:
             return "Install Claude Code"
         }

@@ -2,20 +2,53 @@ import Foundation
 import Shared
 import WidgetKit
 
+/// Actor to track fetch state for debouncing
+private actor FetchState {
+    private var lastFetchTime: Date?
+    private let debounceInterval: TimeInterval = 5.0
+
+    func shouldFetch() -> Bool {
+        let now = Date()
+        if let lastFetch = lastFetchTime, now.timeIntervalSince(lastFetch) < debounceInterval {
+            return false
+        }
+        lastFetchTime = now
+        return true
+    }
+}
+
 /// Service that extracts Claude Code credentials and fetches usage data
-@MainActor
-final class UsageService {
+final class UsageService: Sendable {
     static let shared = UsageService()
 
     private let apiURL = URL(string: "https://api.anthropic.com/api/oauth/usage")!
     private let keychainService = "Claude Code-credentials"
+    private let fetchState = FetchState()
+
+    /// Configured URLSession with timeout
+    private let urlSession: URLSession = {
+        let config = URLSessionConfiguration.default
+        config.timeoutIntervalForRequest = 15
+        config.timeoutIntervalForResource = 30
+        return URLSession(configuration: config)
+    }()
 
     private init() {}
 
     /// Fetch usage data and write to cache
     func fetchAndCache() async {
+        // Check debouncing
+        guard await fetchState.shouldFetch() else {
+            print("UsageService: Skipping fetch due to debounce (within 5 seconds of last fetch)")
+            return
+        }
+
         do {
-            let token = try extractToken()
+            // Run extractToken on background thread to avoid blocking main thread
+            let token = try await Task.detached(priority: .userInitiated) {
+                try self.extractToken()
+            }.value
+
             let usage = try await fetchUsage(token: token)
             let cached = CachedUsage(
                 fiveHourUsage: usage.fiveHour.utilization,  // API returns percentage directly
@@ -26,7 +59,9 @@ final class UsageService {
                 error: nil
             )
             try UsageCacheManager.shared.write(cached)
-            WidgetCenter.shared.reloadAllTimelines()
+            await MainActor.run {
+                WidgetCenter.shared.reloadAllTimelines()
+            }
             print("UsageService: Successfully fetched and cached usage data")
         } catch let error as UsageError {
             print("UsageService: Error: \(error)")
@@ -39,7 +74,37 @@ final class UsageService {
                 error: mapError(error)
             )
             try? UsageCacheManager.shared.write(cached)
-            WidgetCenter.shared.reloadAllTimelines()
+            await MainActor.run {
+                WidgetCenter.shared.reloadAllTimelines()
+            }
+        } catch let error as URLError {
+            print("UsageService: Network error: \(error)")
+            let cached = CachedUsage(
+                fiveHourUsage: 0,
+                fiveHourResetAt: nil,
+                sevenDayUsage: 0,
+                sevenDayResetAt: nil,
+                fetchedAt: Date(),
+                error: .networkError
+            )
+            try? UsageCacheManager.shared.write(cached)
+            await MainActor.run {
+                WidgetCenter.shared.reloadAllTimelines()
+            }
+        } catch is DecodingError {
+            print("UsageService: Decoding error - invalid credentials format")
+            let cached = CachedUsage(
+                fiveHourUsage: 0,
+                fiveHourResetAt: nil,
+                sevenDayUsage: 0,
+                sevenDayResetAt: nil,
+                fetchedAt: Date(),
+                error: .invalidCredentialsFormat
+            )
+            try? UsageCacheManager.shared.write(cached)
+            await MainActor.run {
+                WidgetCenter.shared.reloadAllTimelines()
+            }
         } catch {
             print("UsageService: Unexpected error: \(error)")
             // Cache as API error so widget shows something useful
@@ -52,7 +117,9 @@ final class UsageService {
                 error: .apiError
             )
             try? UsageCacheManager.shared.write(cached)
-            WidgetCenter.shared.reloadAllTimelines()
+            await MainActor.run {
+                WidgetCenter.shared.reloadAllTimelines()
+            }
         }
     }
 
@@ -99,7 +166,7 @@ final class UsageService {
         request.setValue("oauth-2025-04-20", forHTTPHeaderField: "anthropic-beta")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
 
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await urlSession.data(for: request)
 
         guard let httpResponse = response as? HTTPURLResponse else {
             throw UsageError.networkError
@@ -138,7 +205,9 @@ final class UsageService {
             return .invalidToken
         case .networkError:
             return .networkError
-        case .apiError, .invalidCredentialsFormat:
+        case .invalidCredentialsFormat:
+            return .invalidCredentialsFormat
+        case .apiError:
             return .apiError
         }
     }

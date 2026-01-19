@@ -8,7 +8,36 @@ struct ClaudeUsageWidgetApp: App {
     var body: some Scene {
         // No visible window - this is an invisible background app
         Settings {
-            EmptyView()
+            SettingsView()
+        }
+    }
+}
+
+struct SettingsView: View {
+    @State private var startAtLogin: Bool = LaunchAgentManager.shared.isEnabled
+    @State private var showError: Bool = false
+    @State private var errorMessage: String = ""
+
+    var body: some View {
+        Form {
+            Toggle("Start at Login", isOn: $startAtLogin)
+                .onChange(of: startAtLogin) { _, newValue in
+                    do {
+                        try LaunchAgentManager.shared.setEnabled(newValue)
+                    } catch {
+                        errorMessage = error.localizedDescription
+                        showError = true
+                        // Revert the toggle
+                        startAtLogin = !newValue
+                    }
+                }
+        }
+        .padding(20)
+        .frame(width: 300, height: 100)
+        .alert("Error", isPresented: $showError) {
+            Button("OK") { }
+        } message: {
+            Text(errorMessage)
         }
     }
 }
@@ -27,13 +56,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             queue: .main
         ) { _ in
             print("ClaudeUsageWidget: Received refresh notification from widget")
-            Task { @MainActor in
+            Task {
                 await UsageService.shared.fetchAndCache()
             }
         }
 
         // Initial fetch
-        Task { @MainActor in
+        Task {
             await UsageService.shared.fetchAndCache()
         }
 
@@ -52,7 +81,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Refresh every 15 minutes
         refreshTimer = Timer.scheduledTimer(withTimeInterval: 15 * 60, repeats: true) { _ in
             print("ClaudeUsageWidget: Periodic refresh triggered")
-            Task { @MainActor in
+            Task {
                 await UsageService.shared.fetchAndCache()
             }
         }
