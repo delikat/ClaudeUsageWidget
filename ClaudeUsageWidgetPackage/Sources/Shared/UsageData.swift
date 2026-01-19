@@ -18,7 +18,7 @@ public struct APIUsageResponse: Codable, Sendable {
 
 /// Individual usage metric with utilization and reset time
 public struct UsageMetric: Codable, Sendable {
-    /// Utilization as a decimal (0.0 - 1.0)
+    /// Utilization as a percentage (0 - 100)
     public let utilization: Double
     /// ISO8601 timestamp when usage resets, or null
     public let resetsAt: String?

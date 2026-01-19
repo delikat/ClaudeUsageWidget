@@ -42,6 +42,17 @@ final class UsageService {
             WidgetCenter.shared.reloadAllTimelines()
         } catch {
             print("UsageService: Unexpected error: \(error)")
+            // Cache as API error so widget shows something useful
+            let cached = CachedUsage(
+                fiveHourUsage: 0,
+                fiveHourResetAt: nil,
+                sevenDayUsage: 0,
+                sevenDayResetAt: nil,
+                fetchedAt: Date(),
+                error: .apiError
+            )
+            try? UsageCacheManager.shared.write(cached)
+            WidgetCenter.shared.reloadAllTimelines()
         }
     }
 

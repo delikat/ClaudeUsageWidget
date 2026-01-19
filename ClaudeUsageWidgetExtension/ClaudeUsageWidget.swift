@@ -27,7 +27,7 @@ struct CapsuleProgressBar: View {
                     .frame(height: barHeight)
                 Capsule()
                     .fill(color)
-                    .frame(width: max(0, geometry.size.width * CGFloat(value / 100)), height: barHeight)
+                    .frame(width: geometry.size.width * CGFloat(min(max(0, value), 100) / 100), height: barHeight)
             }
         }
         .frame(height: barHeight)
@@ -103,7 +103,7 @@ struct SmallWidgetView: View {
 
     var body: some View {
         if entry.usage.error != nil {
-            SetupRequiredView()
+            ErrorView(error: entry.usage.error)
         } else {
             VStack(spacing: 10) {
                 HStack {
@@ -132,7 +132,7 @@ struct MediumWidgetView: View {
 
     var body: some View {
         if entry.usage.error != nil {
-            SetupRequiredView()
+            ErrorView(error: entry.usage.error)
         } else {
             VStack(spacing: 6) {
                 HStack {
@@ -210,17 +210,56 @@ struct UsageGauge: View {
     }
 }
 
-struct SetupRequiredView: View {
+struct ErrorView: View {
+    let error: CachedUsage.CacheError?
+
+    private var icon: String {
+        switch error {
+        case .networkError:
+            return "wifi.slash"
+        case .invalidToken:
+            return "key.slash"
+        default:
+            return "exclamationmark.triangle.fill"
+        }
+    }
+
+    private var title: String {
+        switch error {
+        case .networkError:
+            return "Network Error"
+        case .invalidToken:
+            return "Token Expired"
+        case .apiError:
+            return "API Error"
+        default:
+            return "Setup Required"
+        }
+    }
+
+    private var message: String {
+        switch error {
+        case .networkError:
+            return "Check connection"
+        case .invalidToken:
+            return "Re-login to Claude Code"
+        case .apiError:
+            return "Try again later"
+        default:
+            return "Install Claude Code"
+        }
+    }
+
     var body: some View {
         VStack(spacing: 8) {
-            Image(systemName: "exclamationmark.triangle.fill")
+            Image(systemName: icon)
                 .font(.title)
                 .foregroundStyle(.orange)
 
-            Text("Setup Required")
+            Text(title)
                 .font(.caption.bold())
 
-            Text("Install Claude Code")
+            Text(message)
                 .font(.caption2)
                 .foregroundStyle(.secondary)
         }
@@ -235,7 +274,7 @@ struct SmallGaugeWidgetView: View {
 
     var body: some View {
         if entry.usage.error != nil {
-            SetupRequiredView()
+            ErrorView(error: entry.usage.error)
         } else {
             VStack(spacing: 6) {
                 HStack {
@@ -268,7 +307,7 @@ struct MediumGaugeWidgetView: View {
 
     var body: some View {
         if entry.usage.error != nil {
-            SetupRequiredView()
+            ErrorView(error: entry.usage.error)
         } else {
             HStack(spacing: 20) {
                 GaugeColumn(
