@@ -44,12 +44,17 @@ final class UsageService: Sendable {
         }
 
         do {
-            // Run extractToken on background thread to avoid blocking main thread
-            let token = try await Task.detached(priority: .userInitiated) {
-                try self.extractToken()
+            // Run extractCredentials on background thread to avoid blocking main thread
+            let credentials = try await Task.detached(priority: .userInitiated) {
+                try self.extractCredentials()
             }.value
 
-            let usage = try await fetchUsage(token: token)
+            // Log warning if token appears expired (but still try - Claude Code may have refreshed)
+            if isTokenExpired(credentials) {
+                print("UsageService: Token appears expired, will attempt fetch anyway (Claude Code may have refreshed)")
+            }
+
+            let usage = try await fetchUsage(token: credentials.claudeAiOauth.accessToken)
             let cached = CachedUsage(
                 fiveHourUsage: usage.fiveHour.utilization,  // API returns percentage directly
                 fiveHourResetAt: parseISO8601Date(usage.fiveHour.resetsAt),
@@ -123,8 +128,8 @@ final class UsageService: Sendable {
         }
     }
 
-    /// Extract OAuth token from Claude Code keychain entry
-    private func extractToken() throws -> String {
+    /// Extract OAuth credentials from Claude Code keychain entry
+    private func extractCredentials() throws -> ClaudeCredentials {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/security")
         process.arguments = ["find-generic-password", "-s", keychainService, "-w"]
@@ -154,12 +159,20 @@ final class UsageService: Sendable {
             throw UsageError.invalidCredentialsFormat
         }
 
-        let credentials = try JSONDecoder().decode(ClaudeCredentials.self, from: jsonData)
-        return credentials.claudeAiOauth.accessToken
+        return try JSONDecoder().decode(ClaudeCredentials.self, from: jsonData)
     }
 
-    /// Fetch usage data from Anthropic API
-    private func fetchUsage(token: String) async throws -> APIUsageResponse {
+    /// Check if the OAuth token is expired
+    private func isTokenExpired(_ credentials: ClaudeCredentials) -> Bool {
+        guard let expiresAt = credentials.claudeAiOauth.expiresAt else {
+            return false  // No expiry info = assume valid
+        }
+        let expiryDate = Date(timeIntervalSince1970: Double(expiresAt) / 1000.0)
+        return Date() > expiryDate
+    }
+
+    /// Fetch usage data from Anthropic API with optional retry on 401
+    private func fetchUsage(token: String, retryCount: Int = 0) async throws -> APIUsageResponse {
         var request = URLRequest(url: apiURL)
         request.httpMethod = "GET"
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
@@ -176,6 +189,14 @@ final class UsageService: Sendable {
         case 200:
             return try JSONDecoder().decode(APIUsageResponse.self, from: data)
         case 401:
+            // On first 401, re-read keychain in case Claude Code refreshed the token
+            if retryCount == 0 {
+                print("UsageService: Got 401, re-reading keychain for potentially refreshed token")
+                let freshCredentials = try await Task.detached(priority: .userInitiated) {
+                    try self.extractCredentials()
+                }.value
+                return try await fetchUsage(token: freshCredentials.claudeAiOauth.accessToken, retryCount: 1)
+            }
             throw UsageError.invalidToken
         default:
             print("UsageService: API returned status \(httpResponse.statusCode)")

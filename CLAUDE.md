@@ -56,3 +56,10 @@ xcodebuild -workspace ClaudeUsageWidget.xcworkspace -scheme ClaudeUsageWidgetUIT
 - Widget supports Small (1x1) and Medium (2x1) families
 - Uses Swift 6.1 with macOS 14+ deployment target
 - Uses Swift Testing framework for unit tests, XCUITest for UI tests
+
+## Reference Project
+
+**Claude Usage Tracker** (`/Users/adelikat/Developer/Claude-Usage-Tracker`) is a mature macOS menu bar app that accomplishes similar goals. Useful for inspiration on:
+- Token handling and expiration (`ClaudeCodeSyncService.swift`, `ClaudeAPIService.swift`)
+- Keychain access patterns
+- Error handling strategies

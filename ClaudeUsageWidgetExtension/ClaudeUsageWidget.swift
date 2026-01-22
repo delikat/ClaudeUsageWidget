@@ -3,13 +3,13 @@ import SwiftUI
 import AppIntents
 import Shared
 
-// MARK: - Pastel Colors (More Saturated)
+// MARK: - Adaptive Colors
 
 extension Color {
-    static let pastelMint = Color(red: 0.3, green: 0.8, blue: 0.6)
-    static let pastelAmber = Color(red: 0.95, green: 0.65, blue: 0.3)
-    static let pastelCoral = Color(red: 0.95, green: 0.4, blue: 0.4)
-    static let progressTrack = Color.white.opacity(0.3)
+    // High-contrast colors for both light and dark modes
+    static let pastelMint = Color(red: 0.2, green: 0.65, blue: 0.5)   // Teal green
+    static let pastelAmber = Color(red: 0.9, green: 0.5, blue: 0.1)   // Rich orange
+    static let pastelCoral = Color(red: 0.9, green: 0.3, blue: 0.3)   // Strong red
 }
 
 // MARK: - Capsule Progress Bar
@@ -18,12 +18,17 @@ struct CapsuleProgressBar: View {
     let value: Double
     let color: Color
     private let barHeight: CGFloat = 8
+    @Environment(\.colorScheme) var colorScheme
+
+    private var trackColor: Color {
+        colorScheme == .dark ? Color.white.opacity(0.3) : Color.black.opacity(0.15)
+    }
 
     var body: some View {
         GeometryReader { geometry in
             ZStack(alignment: .leading) {
                 Capsule()
-                    .fill(Color.progressTrack)
+                    .fill(trackColor)
                     .frame(height: barHeight)
                 Capsule()
                     .fill(color)
@@ -40,6 +45,11 @@ struct CircularRingGauge: View {
     let value: Double
     let color: Color
     let lineWidth: CGFloat
+    @Environment(\.colorScheme) var colorScheme
+
+    private var trackColor: Color {
+        colorScheme == .dark ? Color.white.opacity(0.3) : Color.black.opacity(0.15)
+    }
 
     init(value: Double, color: Color, lineWidth: CGFloat = 8) {
         self.value = value
@@ -51,7 +61,7 @@ struct CircularRingGauge: View {
         ZStack {
             // Background track
             Circle()
-                .stroke(Color.progressTrack, lineWidth: lineWidth)
+                .stroke(trackColor, lineWidth: lineWidth)
 
             // Filled arc
             Circle()

@@ -40,9 +40,11 @@ public struct ClaudeCredentials: Codable, Sendable {
 
     public struct OAuthTokens: Codable, Sendable {
         public let accessToken: String
+        public let expiresAt: Int64?  // Unix timestamp in milliseconds (optional for backwards compat)
 
         enum CodingKeys: String, CodingKey {
             case accessToken
+            case expiresAt
         }
     }
 }
