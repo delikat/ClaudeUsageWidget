@@ -376,15 +376,13 @@ struct SmallGaugeWidgetView: View {
                 )
 
                 if let resetAt = entry.usage.fiveHourResetAt {
-                    HStack {
-                        Spacer()
-                        Text("Resets in \(resetAt, style: .relative)")
-                            .font(.system(size: 9, weight: .medium))
-                            .foregroundStyle(.secondary)
-                    }
+                    Text("in \(resetAt, style: .relative)")
+                        .font(.system(size: 9, weight: .medium))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
                 }
             }
-            .cardStyle(padding: 16)
+            .cardStyle()
             .padding(6)
         }
     }
@@ -449,12 +447,10 @@ struct GaugeCard: View {
             )
 
             if let resetAt = resetAt {
-                HStack {
-                    Spacer()
-                    Text("Resets in \(resetAt, style: .relative)")
-                        .font(.system(size: 9, weight: .medium))
-                        .foregroundStyle(.secondary)
-                }
+                Text("in \(resetAt, style: .relative)")
+                    .font(.system(size: 9, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
             }
         }
         .cardStyle()
