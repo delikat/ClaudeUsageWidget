@@ -52,6 +52,7 @@ xcodebuild -workspace ClaudeUsageWidget.xcworkspace -scheme ClaudeUsageWidgetUIT
 ## Development Notes
 
 - **Xcode Canvas previews do NOT work for macOS widgets.** You must run the main app to install the widget extension, then use WidgetKit Simulator or add the widget to the desktop to see changes.
+- **Widget changes not appearing?** If the app is installed in `/Applications`, WidgetKit Simulator loads the widget extension from there, not from DerivedData. After building, copy the new build to `/Applications` or delete the old one: `cp -R ~/Library/Developer/Xcode/DerivedData/ClaudeUsageWidget-*/Build/Products/Debug/ClaudeUsageWidget.app /Applications/`
 - Most development happens in `ClaudeUsageWidgetPackage/Sources/Shared/`
 - Types exposed to app targets require `public` access modifier
 - Widget supports Small (1x1) and Medium (2x1) families

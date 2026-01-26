@@ -196,7 +196,7 @@ struct SmallWidgetView: View {
                     RefreshButton()
                     Spacer()
                     if let resetAt = entry.usage.fiveHourResetAt {
-                        Text("Resets \(resetAt, style: .relative)")
+                        Text("Resets in \(resetAt, style: .relative)")
                             .font(.system(size: 9, weight: .medium))
                             .foregroundStyle(.secondary)
                     }
@@ -272,7 +272,7 @@ struct UsageCard: View {
                 }
                 Spacer()
                 if let resetAt = resetAt {
-                    Text("Resets \(resetAt, style: .relative)")
+                    Text("Resets in \(resetAt, style: .relative)")
                         .font(.system(size: 9, weight: .medium))
                         .foregroundStyle(.secondary)
                 }
@@ -378,7 +378,7 @@ struct SmallGaugeWidgetView: View {
                 if let resetAt = entry.usage.fiveHourResetAt {
                     HStack {
                         Spacer()
-                        Text("Resets \(resetAt, style: .relative)")
+                        Text("Resets in \(resetAt, style: .relative)")
                             .font(.system(size: 9, weight: .medium))
                             .foregroundStyle(.secondary)
                     }
@@ -451,7 +451,7 @@ struct GaugeCard: View {
             if let resetAt = resetAt {
                 HStack {
                     Spacer()
-                    Text("Resets \(resetAt, style: .relative)")
+                    Text("Resets in \(resetAt, style: .relative)")
                         .font(.system(size: 9, weight: .medium))
                         .foregroundStyle(.secondary)
                 }
