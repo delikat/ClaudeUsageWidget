@@ -70,20 +70,50 @@ public struct CachedUsage: Codable, Sendable {
     }
 }
 
+/// Provider type for usage cache
+public enum UsageProvider: String, Sendable {
+    case claude
+    case codex
+
+    var fileName: String {
+        switch self {
+        case .claude:
+            return "UsageCache.json"
+        case .codex:
+            return "CodexUsageCache.json"
+        }
+    }
+
+    /// Distributed notification name for refresh requests
+    public var refreshNotificationName: Notification.Name {
+        switch self {
+        case .claude:
+            return Notification.Name("com.delikat.claudewidget.refresh")
+        case .codex:
+            return Notification.Name("com.delikat.claudewidget.codex.refresh")
+        }
+    }
+}
+
 /// Manages reading and writing cached usage data to App Group container
 public final class UsageCacheManager: Sendable {
-    public static let shared = UsageCacheManager()
+    /// Shared instance for Claude (backwards compatible)
+    public static let shared = UsageCacheManager(provider: .claude)
+    /// Shared instance for Codex
+    public static let codex = UsageCacheManager(provider: .codex)
 
+    public let provider: UsageProvider
     private let appGroupIdentifier = "HN6S8N7886.group.com.delikat.claudewidget"
-    private let fileName = "UsageCache.json"
 
     private var fileURL: URL? {
         FileManager.default
             .containerURL(forSecurityApplicationGroupIdentifier: appGroupIdentifier)?
-            .appendingPathComponent(fileName)
+            .appendingPathComponent(provider.fileName)
     }
 
-    private init() {}
+    public init(provider: UsageProvider) {
+        self.provider = provider
+    }
 
     /// Read cached usage data from App Group container
     public func read() -> CachedUsage? {
@@ -120,7 +150,7 @@ public final class UsageCacheManager: Sendable {
             print("UsageCacheManager: Created container directory at \(containerURL.path)")
         }
 
-        let url = containerURL.appendingPathComponent(fileName)
+        let url = containerURL.appendingPathComponent(provider.fileName)
         print("UsageCacheManager: Writing cache to \(url.path)")
 
         let encoder = JSONEncoder()

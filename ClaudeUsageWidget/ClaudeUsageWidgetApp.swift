@@ -44,26 +44,40 @@ struct SettingsView: View {
 
 class AppDelegate: NSObject, NSApplicationDelegate {
     private var refreshTimer: Timer?
-    private var notificationObserver: Any?
+    private var claudeNotificationObserver: Any?
+    private var codexNotificationObserver: Any?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         print("ClaudeUsageWidget: App launched")
 
-        // Listen for refresh notifications from widget
-        notificationObserver = DistributedNotificationCenter.default().addObserver(
+        // Listen for Claude refresh notifications from widget
+        claudeNotificationObserver = DistributedNotificationCenter.default().addObserver(
             forName: .refreshUsage,
             object: nil,
             queue: .main
         ) { _ in
-            print("ClaudeUsageWidget: Received refresh notification from widget")
+            print("ClaudeUsageWidget: Received Claude refresh notification from widget")
             Task {
                 await UsageService.shared.fetchAndCache()
             }
         }
 
-        // Initial fetch
+        // Listen for Codex refresh notifications from widget
+        codexNotificationObserver = DistributedNotificationCenter.default().addObserver(
+            forName: .refreshCodexUsage,
+            object: nil,
+            queue: .main
+        ) { _ in
+            print("ClaudeUsageWidget: Received Codex refresh notification from widget")
+            Task {
+                await CodexUsageService.shared.fetchAndCache()
+            }
+        }
+
+        // Initial fetch for both services
         Task {
             await UsageService.shared.fetchAndCache()
+            await CodexUsageService.shared.fetchAndCache()
         }
 
         // Schedule periodic refresh every 15 minutes
@@ -72,7 +86,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationWillTerminate(_ notification: Notification) {
         refreshTimer?.invalidate()
-        if let observer = notificationObserver {
+        if let observer = claudeNotificationObserver {
+            DistributedNotificationCenter.default().removeObserver(observer)
+        }
+        if let observer = codexNotificationObserver {
             DistributedNotificationCenter.default().removeObserver(observer)
         }
     }
@@ -83,6 +100,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             print("ClaudeUsageWidget: Periodic refresh triggered")
             Task {
                 await UsageService.shared.fetchAndCache()
+                await CodexUsageService.shared.fetchAndCache()
             }
         }
     }
