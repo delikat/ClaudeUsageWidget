@@ -3,31 +3,20 @@ import SwiftUI
 import AppIntents
 import Shared
 
-// MARK: - Adaptive Colors
+// MARK: - Dark Theme Colors
 
 extension Color {
-    // Clean system colors matching Claude Usage Tracker style
+    // Usage status colors
     static let usageGreen = Color.green
     static let usageOrange = Color.orange
     static let usageRed = Color.red
 
-    // Card styling colors
-    static let cardBackground = Color(nsColor: .controlBackgroundColor).opacity(0.4)
-    static let cardBorder = Color.gray.opacity(0.2)
-    static let trackBackground = Color.secondary.opacity(0.15)
-}
-
-// MARK: - Status Icon Helper
-
-func statusIcon(for percentage: Double) -> String {
-    switch percentage {
-    case 0..<50:
-        return "checkmark.circle.fill"
-    case 50..<80:
-        return "exclamationmark.triangle.fill"
-    default:
-        return "xmark.circle.fill"
-    }
+    // Dark theme colors
+    static let widgetBackground = Color(white: 0.12)
+    static let primaryText = Color.white
+    static let secondaryText = Color.white.opacity(0.6)
+    static let tertiaryText = Color.white.opacity(0.4)
+    static let trackBackground = Color.white.opacity(0.15)
 }
 
 // MARK: - Usage Color Helper
@@ -43,29 +32,57 @@ func usageColor(for value: Double) -> Color {
     }
 }
 
-// MARK: - Card Background Modifier
+// MARK: - Text Helpers
 
-struct CardBackground: ViewModifier {
-    var padding: CGFloat = 12
+private struct PlanTitleText: View {
+    let title: String
+    let baseSize: CGFloat
 
-    func body(content: Content) -> some View {
-        content
-            .padding(padding)
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Color.cardBackground)
-                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .strokeBorder(Color.cardBorder, lineWidth: 1)
-            )
+    init(_ title: String, baseSize: CGFloat = 9) {
+        self.title = title
+        self.baseSize = baseSize
+    }
+
+    var body: some View {
+        ViewThatFits(in: .horizontal) {
+            Text(title)
+                .font(.system(size: baseSize, weight: .medium))
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .minimumScaleFactor(0.9)
+            Text(title)
+                .font(.system(size: max(baseSize - 1, 8), weight: .medium))
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .minimumScaleFactor(0.9)
+        }
+        .foregroundStyle(Color.secondaryText)
     }
 }
 
-extension View {
-    func cardStyle(padding: CGFloat = 12) -> some View {
-        modifier(CardBackground(padding: padding))
+private struct ResetTimeText: View {
+    let text: String
+    let baseSize: CGFloat
+
+    init(_ text: String, baseSize: CGFloat = 9) {
+        self.text = text
+        self.baseSize = baseSize
+    }
+
+    var body: some View {
+        ViewThatFits(in: .horizontal) {
+            Text(text)
+                .font(.system(size: baseSize, weight: .medium))
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .minimumScaleFactor(0.9)
+            Text(text)
+                .font(.system(size: max(baseSize - 1, 8), weight: .medium))
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .minimumScaleFactor(0.9)
+        }
+        .foregroundStyle(Color.tertiaryText)
     }
 }
 
@@ -105,11 +122,13 @@ struct CircularRingGauge: View {
     let value: Double
     let color: Color
     let lineWidth: CGFloat
+    let percentageFontSize: CGFloat
 
-    init(value: Double, color: Color, lineWidth: CGFloat = 8) {
+    init(value: Double, color: Color, lineWidth: CGFloat = 12, percentageFontSize: CGFloat = 20) {
         self.value = value
         self.color = color
         self.lineWidth = lineWidth
+        self.percentageFontSize = percentageFontSize
     }
 
     var body: some View {
@@ -125,10 +144,10 @@ struct CircularRingGauge: View {
                 .rotationEffect(.degrees(-90))
                 .animation(.easeInOut(duration: 0.8), value: value)
 
-            // Percentage text
+            // Percentage text (white, not colored)
             Text("\(Int(value))%")
-                .font(.system(size: 14, weight: .bold, design: .monospaced))
-                .foregroundStyle(color)
+                .font(.system(size: percentageFontSize, weight: .bold, design: .monospaced))
+                .foregroundStyle(Color.primaryText)
         }
     }
 }
@@ -166,119 +185,104 @@ struct UsageEntry: TimelineEntry {
 
 struct SmallWidgetView: View {
     let entry: UsageEntry
+    private var planTitle: String { entry.usage.planTitle ?? "Usage Limit" }
 
     var body: some View {
         if entry.usage.error != nil {
             ErrorView(error: entry.usage.error)
         } else {
-            VStack(spacing: 8) {
+            VStack(spacing: 6) {
+                // Header row: label, percentage, refresh
                 HStack {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("5 Hour")
-                            .font(.system(size: 13, weight: .semibold))
-                        Text(entry.usage.planTitle ?? "Usage Limit")
-                            .font(.system(size: 10, weight: .medium))
-                            .foregroundStyle(.secondary)
-                    }
+                    Text("5h")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Color.primaryText)
+                    Text("\(Int(entry.usage.fiveHourUsage))%")
+                        .font(.system(size: 16, weight: .bold, design: .monospaced))
+                        .foregroundStyle(usageColor(for: entry.usage.fiveHourUsage))
+                        .lineLimit(1)
+                        .fixedSize()
                     Spacer()
-                    HStack(spacing: 3) {
-                        Image(systemName: statusIcon(for: entry.usage.fiveHourUsage))
-                            .font(.system(size: 12, weight: .bold))
-                        Text("\(Int(entry.usage.fiveHourUsage))%")
-                            .font(.system(size: 16, weight: .bold, design: .monospaced))
-                    }
-                    .foregroundStyle(usageColor(for: entry.usage.fiveHourUsage))
+                    RefreshButton()
                 }
 
+                // Progress bar
                 ProgressBar(value: entry.usage.fiveHourUsage, color: usageColor(for: entry.usage.fiveHourUsage))
 
-                HStack {
-                    RefreshButton()
-                    Spacer()
-                    if let resetAt = entry.usage.fiveHourResetAt {
-                        Text("Resets in \(resetAt, style: .relative)")
-                            .font(.system(size: 9, weight: .medium))
-                            .foregroundStyle(.secondary)
-                    }
+                // Plan subtitle
+                PlanTitleText(planTitle)
+
+                // Reset time
+                if let resetAt = entry.usage.fiveHourResetAt {
+                    ResetTimeText("Resets in \(resetAt, style: .relative)")
                 }
             }
-            .cardStyle(padding: 16)
-            .padding(6)
+            .padding(12)
         }
     }
 }
 
 struct MediumWidgetView: View {
     let entry: UsageEntry
+    private var planTitle: String { entry.usage.planTitle ?? "Usage Limit" }
 
     var body: some View {
         if entry.usage.error != nil {
             ErrorView(error: entry.usage.error)
         } else {
-            HStack(spacing: 8) {
-                UsageCard(
-                    title: "5 Hour",
-                    subtitle: entry.usage.planTitle ?? "Usage Limit",
-                    value: entry.usage.fiveHourUsage,
-                    resetAt: entry.usage.fiveHourResetAt,
-                    showRefresh: true
-                )
-
-                UsageCard(
-                    title: "7 Day",
-                    subtitle: entry.usage.planTitle ?? "Usage Limit",
-                    value: entry.usage.sevenDayUsage,
-                    resetAt: entry.usage.sevenDayResetAt,
-                    showRefresh: false
-                )
-            }
-            .padding(6)
-        }
-    }
-}
-
-struct UsageCard: View {
-    let title: String
-    let subtitle: String
-    let value: Double
-    let resetAt: Date?
-    let showRefresh: Bool
-
-    var body: some View {
-        VStack(spacing: 8) {
-            HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(title)
-                        .font(.system(size: 13, weight: .semibold))
-                    Text(subtitle)
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(.secondary)
-                }
-                Spacer()
-                HStack(spacing: 3) {
-                    Image(systemName: statusIcon(for: value))
-                        .font(.system(size: 12, weight: .bold))
-                    Text("\(Int(value))%")
-                        .font(.system(size: 16, weight: .bold, design: .monospaced))
-                }
-                .foregroundStyle(usageColor(for: value))
-            }
-
-            ProgressBar(value: value, color: usageColor(for: value))
-
-            HStack {
-                if showRefresh {
+            VStack(spacing: 8) {
+                // Header row with refresh button
+                HStack {
+                    Spacer()
                     RefreshButton()
                 }
-                Spacer()
-                if let resetAt = resetAt {
-                    Text("Resets in \(resetAt, style: .relative)")
-                        .font(.system(size: 9, weight: .medium))
-                        .foregroundStyle(.secondary)
+
+                // Two progress bars side by side
+                HStack(spacing: 16) {
+                    // 5 Hour usage
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Text("5h")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundStyle(Color.primaryText)
+                            Text("\(Int(entry.usage.fiveHourUsage))%")
+                                .font(.system(size: 16, weight: .bold, design: .monospaced))
+                                .foregroundStyle(usageColor(for: entry.usage.fiveHourUsage))
+                                .lineLimit(1)
+                                .fixedSize()
+                        }
+                        ProgressBar(value: entry.usage.fiveHourUsage, color: usageColor(for: entry.usage.fiveHourUsage))
+                        if let resetAt = entry.usage.fiveHourResetAt {
+                            ResetTimeText("in \(resetAt, style: .relative)")
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+
+                    // 1 Week usage
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Text("1w")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundStyle(Color.primaryText)
+                            Text("\(Int(entry.usage.sevenDayUsage))%")
+                                .font(.system(size: 16, weight: .bold, design: .monospaced))
+                                .foregroundStyle(usageColor(for: entry.usage.sevenDayUsage))
+                                .lineLimit(1)
+                                .fixedSize()
+                        }
+                        ProgressBar(value: entry.usage.sevenDayUsage, color: usageColor(for: entry.usage.sevenDayUsage))
+                        if let resetAt = entry.usage.sevenDayResetAt {
+                            ResetTimeText("in \(resetAt, style: .relative)")
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
                 }
+
+                // Plan subtitle centered
+                PlanTitleText(planTitle)
             }
+            .padding(12)
         }
-        .cardStyle()
     }
 }
 
@@ -330,20 +334,29 @@ struct ErrorView: View {
 
     var body: some View {
         VStack(spacing: 8) {
+            HStack {
+                Spacer()
+                RefreshButton()
+            }
+
+            Spacer()
+
             Image(systemName: icon)
                 .font(.title2)
                 .foregroundStyle(Color.usageOrange)
 
             Text(title)
                 .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(Color.primaryText)
 
             Text(message)
                 .font(.system(size: 10, weight: .medium))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.secondaryText)
+
+            Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .cardStyle(padding: 16)
-        .padding(6)
+        .padding(12)
     }
 }
 
@@ -351,109 +364,98 @@ struct ErrorView: View {
 
 struct SmallGaugeWidgetView: View {
     let entry: UsageEntry
+    private var planTitle: String { entry.usage.planTitle ?? "Usage Limit" }
 
     var body: some View {
         if entry.usage.error != nil {
             ErrorView(error: entry.usage.error)
         } else {
-            VStack(spacing: 6) {
+            VStack(spacing: 4) {
+                // Refresh button top-right
                 HStack {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("5 Hour")
-                            .font(.system(size: 13, weight: .semibold))
-                        Text(entry.usage.planTitle ?? "Usage Limit")
-                            .font(.system(size: 10, weight: .medium))
-                            .foregroundStyle(.secondary)
-                    }
                     Spacer()
                     RefreshButton()
                 }
 
+                // Label above gauge
+                Text("5h")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Color.primaryText)
+
+                // Circular gauge
                 CircularRingGauge(
                     value: entry.usage.fiveHourUsage,
                     color: usageColor(for: entry.usage.fiveHourUsage),
-                    lineWidth: 8
+                    lineWidth: 10,
+                    percentageFontSize: 18
                 )
 
+                // Plan subtitle
+                PlanTitleText(planTitle)
+
+                // Reset time
                 if let resetAt = entry.usage.fiveHourResetAt {
-                    Text("in \(resetAt, style: .relative)")
-                        .font(.system(size: 9, weight: .medium))
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
+                    ResetTimeText("Resets in \(resetAt, style: .relative)")
                 }
             }
-            .cardStyle()
-            .padding(6)
+            .padding(12)
         }
     }
 }
 
 struct MediumGaugeWidgetView: View {
     let entry: UsageEntry
+    private var planTitle: String { entry.usage.planTitle ?? "Usage Limit" }
 
     var body: some View {
         if entry.usage.error != nil {
             ErrorView(error: entry.usage.error)
         } else {
-            HStack(spacing: 8) {
-                GaugeCard(
-                    title: "5 Hour",
-                    subtitle: entry.usage.planTitle ?? "Usage Limit",
-                    value: entry.usage.fiveHourUsage,
-                    resetAt: entry.usage.fiveHourResetAt,
-                    showRefresh: true
-                )
-
-                GaugeCard(
-                    title: "7 Day",
-                    subtitle: entry.usage.planTitle ?? "Usage Limit",
-                    value: entry.usage.sevenDayUsage,
-                    resetAt: entry.usage.sevenDayResetAt,
-                    showRefresh: false
-                )
-            }
-            .padding(6)
-        }
-    }
-}
-
-struct GaugeCard: View {
-    let title: String
-    let subtitle: String
-    let value: Double
-    let resetAt: Date?
-    let showRefresh: Bool
-
-    var body: some View {
-        VStack(spacing: 6) {
-            HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(title)
-                        .font(.system(size: 13, weight: .semibold))
-                    Text(subtitle)
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(.secondary)
-                }
-                Spacer()
-                if showRefresh {
+            VStack(spacing: 4) {
+                // Header: Plan subtitle + refresh button
+                HStack {
+                    PlanTitleText(planTitle, baseSize: 10)
+                    Spacer()
                     RefreshButton()
                 }
-            }
 
-            CircularRingGauge(
-                value: value,
-                color: usageColor(for: value),
-                lineWidth: 8
-            )
+                // Two gauges side by side
+                HStack(spacing: 24) {
+                    // 5 Hour gauge
+                    VStack(spacing: 4) {
+                        Text("5h")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(Color.primaryText)
+                        CircularRingGauge(
+                            value: entry.usage.fiveHourUsage,
+                            color: usageColor(for: entry.usage.fiveHourUsage),
+                            lineWidth: 10,
+                            percentageFontSize: 18
+                        )
+                        if let resetAt = entry.usage.fiveHourResetAt {
+                            ResetTimeText("in \(resetAt, style: .relative)")
+                        }
+                    }
 
-            if let resetAt = resetAt {
-                Text("in \(resetAt, style: .relative)")
-                    .font(.system(size: 9, weight: .medium))
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
+                    // 1 Week gauge
+                    VStack(spacing: 4) {
+                        Text("1w")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(Color.primaryText)
+                        CircularRingGauge(
+                            value: entry.usage.sevenDayUsage,
+                            color: usageColor(for: entry.usage.sevenDayUsage),
+                            lineWidth: 10,
+                            percentageFontSize: 18
+                        )
+                        if let resetAt = entry.usage.sevenDayResetAt {
+                            ResetTimeText("in \(resetAt, style: .relative)")
+                        }
+                    }
+                }
             }
+            .padding(12)
         }
-        .cardStyle()
     }
 }
 
@@ -501,7 +503,7 @@ struct ClaudeUsageWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: Provider()) { entry in
             ClaudeUsageWidgetEntryView(entry: entry)
-                .containerBackground(.fill.tertiary, for: .widget)
+                .containerBackground(Color.widgetBackground, for: .widget)
         }
         .configurationDisplayName("Claude Usage")
         .description("Monitor your Claude Code API usage limits")
@@ -517,7 +519,7 @@ struct ClaudeUsageGaugeWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: Provider()) { entry in
             GaugeWidgetEntryView(entry: entry)
-                .containerBackground(.fill.tertiary, for: .widget)
+                .containerBackground(Color.widgetBackground, for: .widget)
         }
         .configurationDisplayName("Claude Usage (Gauge)")
         .description("Circular gauge showing Claude Code API usage")
@@ -531,7 +533,8 @@ struct RefreshButton: View {
     var body: some View {
         Button(intent: RefreshUsageIntent()) {
             Image(systemName: "arrow.clockwise")
-                .font(.caption)
+                .font(.system(size: 10))
+                .foregroundStyle(Color.secondaryText)
         }
         .buttonStyle(.plain)
     }
