@@ -23,6 +23,7 @@ final class CodexUsageService: Sendable {
 
     private let apiURL = URL(string: "https://chatgpt.com/backend-api/wham/usage")!
     private let fetchState = CodexFetchState()
+    private let userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 
     /// Configured URLSession with timeout
     private let urlSession: URLSession = {
@@ -152,6 +153,7 @@ final class CodexUsageService: Sendable {
         request.setValue("Bearer \(tokens.accessToken)", forHTTPHeaderField: "Authorization")
         request.setValue(tokens.accountId, forHTTPHeaderField: "chatgpt-account-id")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(userAgent, forHTTPHeaderField: "User-Agent")
 
         let (data, response) = try await urlSession.data(for: request)
 
