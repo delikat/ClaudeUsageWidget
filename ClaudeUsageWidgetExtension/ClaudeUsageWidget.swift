@@ -32,6 +32,60 @@ func usageColor(for value: Double) -> Color {
     }
 }
 
+// MARK: - Text Helpers
+
+private struct PlanTitleText: View {
+    let title: String
+    let baseSize: CGFloat
+
+    init(_ title: String, baseSize: CGFloat = 9) {
+        self.title = title
+        self.baseSize = baseSize
+    }
+
+    var body: some View {
+        ViewThatFits(in: .horizontal) {
+            Text(title)
+                .font(.system(size: baseSize, weight: .medium))
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .minimumScaleFactor(0.9)
+            Text(title)
+                .font(.system(size: max(baseSize - 1, 8), weight: .medium))
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .minimumScaleFactor(0.9)
+        }
+        .foregroundStyle(Color.secondaryText)
+    }
+}
+
+private struct ResetTimeText: View {
+    let text: String
+    let baseSize: CGFloat
+
+    init(_ text: String, baseSize: CGFloat = 9) {
+        self.text = text
+        self.baseSize = baseSize
+    }
+
+    var body: some View {
+        ViewThatFits(in: .horizontal) {
+            Text(text)
+                .font(.system(size: baseSize, weight: .medium))
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .minimumScaleFactor(0.9)
+            Text(text)
+                .font(.system(size: max(baseSize - 1, 8), weight: .medium))
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .minimumScaleFactor(0.9)
+        }
+        .foregroundStyle(Color.tertiaryText)
+    }
+}
+
 // MARK: - Progress Bar
 
 struct ProgressBar: View {
@@ -131,6 +185,7 @@ struct UsageEntry: TimelineEntry {
 
 struct SmallWidgetView: View {
     let entry: UsageEntry
+    private var planTitle: String { entry.usage.planTitle ?? "Usage Limit" }
 
     var body: some View {
         if entry.usage.error != nil {
@@ -155,17 +210,11 @@ struct SmallWidgetView: View {
                 ProgressBar(value: entry.usage.fiveHourUsage, color: usageColor(for: entry.usage.fiveHourUsage))
 
                 // Plan subtitle
-                if let planTitle = entry.usage.planTitle {
-                    Text(planTitle)
-                        .font(.system(size: 9, weight: .medium))
-                        .foregroundStyle(Color.secondaryText)
-                }
+                PlanTitleText(planTitle)
 
                 // Reset time
                 if let resetAt = entry.usage.fiveHourResetAt {
-                    Text("Resets in \(resetAt, style: .relative)")
-                        .font(.system(size: 9, weight: .medium))
-                        .foregroundStyle(Color.tertiaryText)
+                    ResetTimeText("Resets in \(resetAt, style: .relative)")
                 }
             }
             .padding(12)
@@ -175,6 +224,7 @@ struct SmallWidgetView: View {
 
 struct MediumWidgetView: View {
     let entry: UsageEntry
+    private var planTitle: String { entry.usage.planTitle ?? "Usage Limit" }
 
     var body: some View {
         if entry.usage.error != nil {
@@ -203,9 +253,7 @@ struct MediumWidgetView: View {
                         }
                         ProgressBar(value: entry.usage.fiveHourUsage, color: usageColor(for: entry.usage.fiveHourUsage))
                         if let resetAt = entry.usage.fiveHourResetAt {
-                            Text("in \(resetAt, style: .relative)")
-                                .font(.system(size: 9, weight: .medium))
-                                .foregroundStyle(Color.tertiaryText)
+                            ResetTimeText("in \(resetAt, style: .relative)")
                         }
                     }
                     .frame(maxWidth: .infinity)
@@ -224,20 +272,14 @@ struct MediumWidgetView: View {
                         }
                         ProgressBar(value: entry.usage.sevenDayUsage, color: usageColor(for: entry.usage.sevenDayUsage))
                         if let resetAt = entry.usage.sevenDayResetAt {
-                            Text("in \(resetAt, style: .relative)")
-                                .font(.system(size: 9, weight: .medium))
-                                .foregroundStyle(Color.tertiaryText)
+                            ResetTimeText("in \(resetAt, style: .relative)")
                         }
                     }
                     .frame(maxWidth: .infinity)
                 }
 
                 // Plan subtitle centered
-                if let planTitle = entry.usage.planTitle {
-                    Text(planTitle)
-                        .font(.system(size: 9, weight: .medium))
-                        .foregroundStyle(Color.secondaryText)
-                }
+                PlanTitleText(planTitle)
             }
             .padding(12)
         }
@@ -322,6 +364,7 @@ struct ErrorView: View {
 
 struct SmallGaugeWidgetView: View {
     let entry: UsageEntry
+    private var planTitle: String { entry.usage.planTitle ?? "Usage Limit" }
 
     var body: some View {
         if entry.usage.error != nil {
@@ -348,18 +391,11 @@ struct SmallGaugeWidgetView: View {
                 )
 
                 // Plan subtitle
-                if let planTitle = entry.usage.planTitle {
-                    Text(planTitle)
-                        .font(.system(size: 9, weight: .medium))
-                        .foregroundStyle(Color.secondaryText)
-                }
+                PlanTitleText(planTitle)
 
                 // Reset time
                 if let resetAt = entry.usage.fiveHourResetAt {
-                    Text("Resets in \(resetAt, style: .relative)")
-                        .font(.system(size: 9, weight: .medium))
-                        .foregroundStyle(Color.tertiaryText)
-                        .lineLimit(1)
+                    ResetTimeText("Resets in \(resetAt, style: .relative)")
                 }
             }
             .padding(12)
@@ -369,6 +405,7 @@ struct SmallGaugeWidgetView: View {
 
 struct MediumGaugeWidgetView: View {
     let entry: UsageEntry
+    private var planTitle: String { entry.usage.planTitle ?? "Usage Limit" }
 
     var body: some View {
         if entry.usage.error != nil {
@@ -377,11 +414,7 @@ struct MediumGaugeWidgetView: View {
             VStack(spacing: 4) {
                 // Header: Plan subtitle + refresh button
                 HStack {
-                    if let planTitle = entry.usage.planTitle {
-                        Text(planTitle)
-                            .font(.system(size: 10, weight: .medium))
-                            .foregroundStyle(Color.secondaryText)
-                    }
+                    PlanTitleText(planTitle, baseSize: 10)
                     Spacer()
                     RefreshButton()
                 }
@@ -400,10 +433,7 @@ struct MediumGaugeWidgetView: View {
                             percentageFontSize: 18
                         )
                         if let resetAt = entry.usage.fiveHourResetAt {
-                            Text("in \(resetAt, style: .relative)")
-                                .font(.system(size: 9, weight: .medium))
-                                .foregroundStyle(Color.tertiaryText)
-                                .lineLimit(1)
+                            ResetTimeText("in \(resetAt, style: .relative)")
                         }
                     }
 
@@ -419,10 +449,7 @@ struct MediumGaugeWidgetView: View {
                             percentageFontSize: 18
                         )
                         if let resetAt = entry.usage.sevenDayResetAt {
-                            Text("in \(resetAt, style: .relative)")
-                                .font(.system(size: 9, weight: .medium))
-                                .foregroundStyle(Color.tertiaryText)
-                                .lineLimit(1)
+                            ResetTimeText("in \(resetAt, style: .relative)")
                         }
                     }
                 }
