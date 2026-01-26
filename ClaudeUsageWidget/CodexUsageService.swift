@@ -54,16 +54,37 @@ final class CodexUsageService: Sendable {
             }
 
             let usage = try await fetchUsage(tokens: tokens)
+            let fiveHourUsage = Double(usage.rateLimit.primaryWindow.usedPercent)
+            let sevenDayUsage = Double(usage.rateLimit.secondaryWindow.usedPercent)
+            let fiveHourResetAt = Date(timeIntervalSince1970: Double(usage.rateLimit.primaryWindow.resetAt))
+            let sevenDayResetAt = Date(timeIntervalSince1970: Double(usage.rateLimit.secondaryWindow.resetAt))
+
             let cached = CachedUsage(
-                fiveHourUsage: Double(usage.rateLimit.primaryWindow.usedPercent),
-                fiveHourResetAt: Date(timeIntervalSince1970: Double(usage.rateLimit.primaryWindow.resetAt)),
-                sevenDayUsage: Double(usage.rateLimit.secondaryWindow.usedPercent),
-                sevenDayResetAt: Date(timeIntervalSince1970: Double(usage.rateLimit.secondaryWindow.resetAt)),
+                fiveHourUsage: fiveHourUsage,
+                fiveHourResetAt: fiveHourResetAt,
+                sevenDayUsage: sevenDayUsage,
+                sevenDayResetAt: sevenDayResetAt,
                 fetchedAt: Date(),
                 error: nil,
                 planTitle: formatPlanType(usage.planType)
             )
             try UsageCacheManager.codex.write(cached)
+
+            // Check for usage alerts and send notifications
+            NotificationManager.shared.resetIfNeeded(
+                fiveHourUsage: fiveHourUsage,
+                sevenDayUsage: sevenDayUsage,
+                provider: .codex
+            )
+            NotificationManager.shared.checkAndNotify(
+                fiveHourUsage: fiveHourUsage,
+                sevenDayUsage: sevenDayUsage,
+                fiveHourResetAt: fiveHourResetAt,
+                sevenDayResetAt: sevenDayResetAt,
+                hasError: false,
+                provider: .codex
+            )
+
             await MainActor.run {
                 WidgetCenter.shared.reloadAllTimelines()
             }

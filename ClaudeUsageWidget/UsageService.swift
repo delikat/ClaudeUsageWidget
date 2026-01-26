@@ -55,16 +55,37 @@ final class UsageService: Sendable {
             }
 
             let usage = try await fetchUsage(token: credentials.claudeAiOauth.accessToken)
+            let fiveHourUsage = usage.fiveHour.utilization
+            let sevenDayUsage = usage.sevenDay.utilization
+            let fiveHourResetAt = parseISO8601Date(usage.fiveHour.resetsAt)
+            let sevenDayResetAt = parseISO8601Date(usage.sevenDay.resetsAt)
+
             let cached = CachedUsage(
-                fiveHourUsage: usage.fiveHour.utilization,  // API returns percentage directly
-                fiveHourResetAt: parseISO8601Date(usage.fiveHour.resetsAt),
-                sevenDayUsage: usage.sevenDay.utilization,  // API returns percentage directly
-                sevenDayResetAt: parseISO8601Date(usage.sevenDay.resetsAt),
+                fiveHourUsage: fiveHourUsage,  // API returns percentage directly
+                fiveHourResetAt: fiveHourResetAt,
+                sevenDayUsage: sevenDayUsage,  // API returns percentage directly
+                sevenDayResetAt: sevenDayResetAt,
                 fetchedAt: Date(),
                 error: nil,
                 planTitle: credentials.claudeAiOauth.displayTier
             )
             try UsageCacheManager.shared.write(cached)
+
+            // Check for usage alerts and send notifications
+            NotificationManager.shared.resetIfNeeded(
+                fiveHourUsage: fiveHourUsage,
+                sevenDayUsage: sevenDayUsage,
+                provider: .claude
+            )
+            NotificationManager.shared.checkAndNotify(
+                fiveHourUsage: fiveHourUsage,
+                sevenDayUsage: sevenDayUsage,
+                fiveHourResetAt: fiveHourResetAt,
+                sevenDayResetAt: sevenDayResetAt,
+                hasError: false,
+                provider: .claude
+            )
+
             await MainActor.run {
                 WidgetCenter.shared.reloadAllTimelines()
             }

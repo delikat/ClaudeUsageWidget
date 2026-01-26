@@ -44,11 +44,15 @@ struct SettingsView: View {
 
 class AppDelegate: NSObject, NSApplicationDelegate {
     private var refreshTimer: Timer?
+    private var historyTimer: Timer?
     private var claudeNotificationObserver: Any?
     private var codexNotificationObserver: Any?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         print("ClaudeUsageWidget: App launched")
+
+        // Request notification permission for usage alerts
+        NotificationManager.shared.requestPermission()
 
         // Listen for Claude refresh notifications from widget
         claudeNotificationObserver = DistributedNotificationCenter.default().addObserver(
@@ -79,10 +83,19 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Schedule periodic refresh every 15 minutes
         schedulePeriodicRefresh()
+
+        // Initial history update (scans JSONL files for heatmap)
+        Task {
+            await HistoryService.shared.updateHistory()
+        }
+
+        // Schedule periodic history updates (every hour)
+        scheduleHistoryUpdates()
     }
 
     func applicationWillTerminate(_ notification: Notification) {
         refreshTimer?.invalidate()
+        historyTimer?.invalidate()
         if let observer = claudeNotificationObserver {
             DistributedNotificationCenter.default().removeObserver(observer)
         }
@@ -96,6 +109,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         refreshTimer = Timer.scheduledTimer(withTimeInterval: 15 * 60, repeats: true) { _ in
             print("ClaudeUsageWidget: Periodic refresh triggered")
             self.refreshAll()
+        }
+    }
+
+    private func scheduleHistoryUpdates() {
+        // Update history every hour (HistoryService has internal throttling too)
+        historyTimer = Timer.scheduledTimer(withTimeInterval: 60 * 60, repeats: true) { _ in
+            print("ClaudeUsageWidget: Periodic history update triggered")
+            Task {
+                await HistoryService.shared.updateHistory()
+            }
         }
     }
 
