@@ -70,15 +70,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         ) { _ in
             print("ClaudeUsageWidget: Received Codex refresh notification from widget")
             Task {
-                await CodexUsageService.shared.fetchAndCache()
+                await self.refreshCodexIfAvailable()
             }
         }
 
         // Initial fetch for both services
-        Task {
-            await UsageService.shared.fetchAndCache()
-            await CodexUsageService.shared.fetchAndCache()
-        }
+        refreshAll()
 
         // Schedule periodic refresh every 15 minutes
         schedulePeriodicRefresh()
@@ -98,10 +95,23 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Refresh every 15 minutes
         refreshTimer = Timer.scheduledTimer(withTimeInterval: 15 * 60, repeats: true) { _ in
             print("ClaudeUsageWidget: Periodic refresh triggered")
-            Task {
-                await UsageService.shared.fetchAndCache()
-                await CodexUsageService.shared.fetchAndCache()
-            }
+            self.refreshAll()
         }
+    }
+
+    private func refreshAll() {
+        Task {
+            async let claudeRefresh = UsageService.shared.fetchAndCache()
+            async let codexRefresh = refreshCodexIfAvailable()
+            _ = await (claudeRefresh, codexRefresh)
+        }
+    }
+
+    private func refreshCodexIfAvailable() async {
+        guard CodexCredentials.hasCredentials() else {
+            print("ClaudeUsageWidget: Skipping Codex refresh (no credentials)")
+            return
+        }
+        await CodexUsageService.shared.fetchAndCache()
     }
 }

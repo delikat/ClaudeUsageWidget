@@ -38,6 +38,23 @@ public struct CodexCredentials: Codable, Sendable {
         let data = try Data(contentsOf: authPath)
         return try JSONDecoder().decode(CodexCredentials.self, from: data)
     }
+
+    /// Check whether credentials exist and include tokens
+    public static func hasCredentials() -> Bool {
+        let homeDir = FileManager.default.homeDirectoryForCurrentUser
+        let authPath = homeDir.appendingPathComponent(".codex/auth.json")
+
+        guard FileManager.default.fileExists(atPath: authPath.path) else {
+            return false
+        }
+
+        guard let data = try? Data(contentsOf: authPath),
+              let credentials = try? JSONDecoder().decode(CodexCredentials.self, from: data) else {
+            return false
+        }
+
+        return credentials.tokens != nil
+    }
 }
 
 public enum CodexCredentialsError: Error {
