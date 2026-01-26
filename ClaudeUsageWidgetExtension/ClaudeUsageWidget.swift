@@ -176,7 +176,7 @@ struct SmallWidgetView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("5 Hour")
                             .font(.system(size: 13, weight: .semibold))
-                        Text("Usage Limit")
+                        Text(entry.usage.planTitle ?? "Usage Limit")
                             .font(.system(size: 10, weight: .medium))
                             .foregroundStyle(.secondary)
                     }
@@ -218,7 +218,7 @@ struct MediumWidgetView: View {
             HStack(spacing: 8) {
                 UsageCard(
                     title: "5 Hour",
-                    subtitle: "Usage Limit",
+                    subtitle: entry.usage.planTitle ?? "Usage Limit",
                     value: entry.usage.fiveHourUsage,
                     resetAt: entry.usage.fiveHourResetAt,
                     showRefresh: true
@@ -226,7 +226,7 @@ struct MediumWidgetView: View {
 
                 UsageCard(
                     title: "7 Day",
-                    subtitle: "Usage Limit",
+                    subtitle: entry.usage.planTitle ?? "Usage Limit",
                     value: entry.usage.sevenDayUsage,
                     resetAt: entry.usage.sevenDayResetAt,
                     showRefresh: false
@@ -361,7 +361,7 @@ struct SmallGaugeWidgetView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("5 Hour")
                             .font(.system(size: 13, weight: .semibold))
-                        Text("Usage Limit")
+                        Text(entry.usage.planTitle ?? "Usage Limit")
                             .font(.system(size: 10, weight: .medium))
                             .foregroundStyle(.secondary)
                     }
@@ -400,7 +400,7 @@ struct MediumGaugeWidgetView: View {
             HStack(spacing: 8) {
                 GaugeCard(
                     title: "5 Hour",
-                    subtitle: "Usage Limit",
+                    subtitle: entry.usage.planTitle ?? "Usage Limit",
                     value: entry.usage.fiveHourUsage,
                     resetAt: entry.usage.fiveHourResetAt,
                     showRefresh: true
@@ -408,7 +408,7 @@ struct MediumGaugeWidgetView: View {
 
                 GaugeCard(
                     title: "7 Day",
-                    subtitle: "Usage Limit",
+                    subtitle: entry.usage.planTitle ?? "Usage Limit",
                     value: entry.usage.sevenDayUsage,
                     resetAt: entry.usage.sevenDayResetAt,
                     showRefresh: false

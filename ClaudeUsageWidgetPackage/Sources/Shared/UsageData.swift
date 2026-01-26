@@ -41,10 +41,43 @@ public struct ClaudeCredentials: Codable, Sendable {
     public struct OAuthTokens: Codable, Sendable {
         public let accessToken: String
         public let expiresAt: Int64?  // Unix timestamp in milliseconds (optional for backwards compat)
+        public let subscriptionType: String?  // e.g., "max", "pro"
+        public let rateLimitTier: String?  // e.g., "default_claude_max_20x", "default_claude_max_5x"
 
         enum CodingKeys: String, CodingKey {
             case accessToken
             case expiresAt
+            case subscriptionType
+            case rateLimitTier
+        }
+
+        /// Formatted display name for the subscription tier
+        /// Parses rateLimitTier like "default_claude_max_20x" → "Max 20x"
+        /// Falls back to subscriptionType like "max" → "Max"
+        public var displayTier: String? {
+            if let tier = rateLimitTier {
+                // Parse "default_claude_max_20x" → "Max 20x"
+                // Parse "default_claude_max_5x" → "Max 5x"
+                // Parse "default_claude_pro" → "Pro"
+                let cleaned = tier
+                    .replacingOccurrences(of: "default_claude_", with: "")
+                    .replacingOccurrences(of: "_", with: " ")
+                    .split(separator: " ")
+                    .map { word in
+                        // Keep "5x", "20x" lowercase after the number
+                        if word.first?.isNumber == true {
+                            return String(word)
+                        }
+                        return word.capitalized
+                    }
+                    .joined(separator: " ")
+                return cleaned.isEmpty ? nil : cleaned
+            }
+            // Fall back to subscriptionType
+            if let sub = subscriptionType {
+                return sub.capitalized
+            }
+            return nil
         }
     }
 }

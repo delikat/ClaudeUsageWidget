@@ -61,7 +61,8 @@ final class UsageService: Sendable {
                 sevenDayUsage: usage.sevenDay.utilization,  // API returns percentage directly
                 sevenDayResetAt: parseISO8601Date(usage.sevenDay.resetsAt),
                 fetchedAt: Date(),
-                error: nil
+                error: nil,
+                planTitle: credentials.claudeAiOauth.displayTier
             )
             try UsageCacheManager.shared.write(cached)
             await MainActor.run {
@@ -76,7 +77,8 @@ final class UsageService: Sendable {
                 sevenDayUsage: 0,
                 sevenDayResetAt: nil,
                 fetchedAt: Date(),
-                error: mapError(error)
+                error: mapError(error),
+                planTitle: nil
             )
             try? UsageCacheManager.shared.write(cached)
             await MainActor.run {
@@ -90,7 +92,8 @@ final class UsageService: Sendable {
                 sevenDayUsage: 0,
                 sevenDayResetAt: nil,
                 fetchedAt: Date(),
-                error: .networkError
+                error: .networkError,
+                planTitle: nil
             )
             try? UsageCacheManager.shared.write(cached)
             await MainActor.run {
@@ -104,7 +107,8 @@ final class UsageService: Sendable {
                 sevenDayUsage: 0,
                 sevenDayResetAt: nil,
                 fetchedAt: Date(),
-                error: .invalidCredentialsFormat
+                error: .invalidCredentialsFormat,
+                planTitle: nil
             )
             try? UsageCacheManager.shared.write(cached)
             await MainActor.run {
@@ -119,7 +123,8 @@ final class UsageService: Sendable {
                 sevenDayUsage: 0,
                 sevenDayResetAt: nil,
                 fetchedAt: Date(),
-                error: .apiError
+                error: .apiError,
+                planTitle: nil
             )
             try? UsageCacheManager.shared.write(cached)
             await MainActor.run {

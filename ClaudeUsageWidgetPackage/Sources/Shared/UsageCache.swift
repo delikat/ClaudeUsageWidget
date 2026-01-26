@@ -14,6 +14,8 @@ public struct CachedUsage: Codable, Sendable {
     public let fetchedAt: Date
     /// Error state if fetch failed
     public let error: CacheError?
+    /// Formatted subscription tier for display (e.g., "Max 20x", "Pro")
+    public let planTitle: String?
 
     public enum CacheError: String, Codable, Sendable {
         case noCredentials
@@ -29,7 +31,8 @@ public struct CachedUsage: Codable, Sendable {
         sevenDayUsage: Double,
         sevenDayResetAt: Date?,
         fetchedAt: Date,
-        error: CacheError?
+        error: CacheError?,
+        planTitle: String? = nil
     ) {
         self.fiveHourUsage = fiveHourUsage
         self.fiveHourResetAt = fiveHourResetAt
@@ -37,6 +40,7 @@ public struct CachedUsage: Codable, Sendable {
         self.sevenDayResetAt = sevenDayResetAt
         self.fetchedAt = fetchedAt
         self.error = error
+        self.planTitle = planTitle
     }
 
     /// Placeholder data for widget previews
@@ -47,7 +51,8 @@ public struct CachedUsage: Codable, Sendable {
             sevenDayUsage: 23.0,
             sevenDayResetAt: Date().addingTimeInterval(86400),
             fetchedAt: Date(),
-            error: nil
+            error: nil,
+            planTitle: "Max 20x"
         )
     }
 
@@ -59,7 +64,8 @@ public struct CachedUsage: Codable, Sendable {
             sevenDayUsage: 0,
             sevenDayResetAt: nil,
             fetchedAt: Date(),
-            error: .noCredentials
+            error: .noCredentials,
+            planTitle: nil
         )
     }
 }
