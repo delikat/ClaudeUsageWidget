@@ -10,6 +10,8 @@
 		8B90D1482DEDD44A00FBD189 /* Shared in Frameworks */ = {isa = PBXBuildFile; productRef = 8B90D1472DEDD44A00FBD189 /* Shared */; };
 		AABB0011223344550000000C /* Shared in Frameworks */ = {isa = PBXBuildFile; productRef = AABB0011223344550000000B /* Shared */; };
 		AABB0011223344550000000D /* ClaudeUsageWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = AABB00112233445500000099 /* ClaudeUsageWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		CCDD0011223344550000000C /* Shared in Frameworks */ = {isa = PBXBuildFile; productRef = CCDD0011223344550000000B /* Shared */; };
+		CCDD0011223344550000000D /* CodexUsageWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = CCDD00112233445500000099 /* CodexUsageWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -27,6 +29,13 @@
 			remoteGlobalIDString = AABB00112233445500000004;
 			remoteInfo = ClaudeUsageWidgetExtension;
 		};
+		CCDD00112233445500000009 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 8BC265542DEDD3F400F279A4 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = CCDD00112233445500000004;
+			remoteInfo = CodexUsageWidgetExtension;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -37,6 +46,7 @@
 			dstSubfolderSpec = 13;
 			files = (
 				AABB0011223344550000000D /* ClaudeUsageWidgetExtension.appex in Embed Foundation Extensions */,
+				CCDD0011223344550000000D /* CodexUsageWidgetExtension.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -47,6 +57,7 @@
 		8BC2655C2DEDD3F400F279A4 /* ClaudeUsageWidget.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ClaudeUsageWidget.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		8BC265742DEDD3F500F279A4 /* ClaudeUsageWidget.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ClaudeUsageWidget.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		AABB00112233445500000099 /* ClaudeUsageWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ClaudeUsageWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		CCDD00112233445500000099 /* CodexUsageWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = CodexUsageWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -86,6 +97,11 @@
 			path = ClaudeUsageWidgetExtension;
 			sourceTree = "<group>";
 		};
+		CCDD00112233445500000000 /* CodexUsageWidgetExtension */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = CodexUsageWidgetExtension;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -112,6 +128,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		CCDD00112233445500000002 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CCDD0011223344550000000C /* Shared in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -128,6 +152,7 @@
 				8B90D1BC2DEE373300FBD189 /* Config */,
 				8BC2655E2DEDD3F400F279A4 /* ClaudeUsageWidget */,
 				AABB00112233445500000000 /* ClaudeUsageWidgetExtension */,
+				CCDD00112233445500000000 /* CodexUsageWidgetExtension */,
 				8BC265772DEDD3F500F279A4 /* ClaudeUsageWidgetUITests */,
 				8B90D1462DEDD44A00FBD189 /* Frameworks */,
 				8BC2655D2DEDD3F400F279A4 /* Products */,
@@ -140,6 +165,7 @@
 				8BC2655C2DEDD3F400F279A4 /* ClaudeUsageWidget.app */,
 				8BC265742DEDD3F500F279A4 /* ClaudeUsageWidget.xctest */,
 				AABB00112233445500000099 /* ClaudeUsageWidgetExtension.appex */,
+				CCDD00112233445500000099 /* CodexUsageWidgetExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -160,6 +186,7 @@
 			);
 			dependencies = (
 				AABB0011223344550000000A /* PBXTargetDependency */,
+				CCDD0011223344550000000A /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				8B90D1BC2DEE373300FBD189 /* Config */,
@@ -219,6 +246,29 @@
 			productReference = AABB00112233445500000099 /* ClaudeUsageWidgetExtension.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
+		CCDD00112233445500000004 /* CodexUsageWidgetExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CCDD00112233445500000005 /* Build configuration list for PBXNativeTarget "CodexUsageWidgetExtension" */;
+			buildPhases = (
+				CCDD00112233445500000001 /* Sources */,
+				CCDD00112233445500000002 /* Frameworks */,
+				CCDD00112233445500000003 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				CCDD00112233445500000000 /* CodexUsageWidgetExtension */,
+			);
+			name = CodexUsageWidgetExtension;
+			packageProductDependencies = (
+				CCDD0011223344550000000B /* Shared */,
+			);
+			productName = CodexUsageWidgetExtension;
+			productReference = CCDD00112233445500000099 /* CodexUsageWidgetExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -240,6 +290,9 @@
 					AABB00112233445500000004 = {
 						CreatedOnToolsVersion = 16.3;
 					};
+					CCDD00112233445500000004 = {
+						CreatedOnToolsVersion = 16.3;
+					};
 				};
 			};
 			buildConfigurationList = 8BC265572DEDD3F400F279A4 /* Build configuration list for PBXProject "ClaudeUsageWidget" */;
@@ -258,6 +311,7 @@
 			targets = (
 				8BC2655B2DEDD3F400F279A4 /* ClaudeUsageWidget */,
 				AABB00112233445500000004 /* ClaudeUsageWidgetExtension */,
+				CCDD00112233445500000004 /* CodexUsageWidgetExtension */,
 				8BC265732DEDD3F500F279A4 /* ClaudeUsageWidgetUITests */,
 			);
 		};
@@ -279,6 +333,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		AABB00112233445500000003 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CCDD00112233445500000003 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -309,6 +370,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		CCDD00112233445500000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -321,6 +389,11 @@
 			isa = PBXTargetDependency;
 			target = AABB00112233445500000004 /* ClaudeUsageWidgetExtension */;
 			targetProxy = AABB00112233445500000009 /* PBXContainerItemProxy */;
+		};
+		CCDD0011223344550000000A /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = CCDD00112233445500000004 /* CodexUsageWidgetExtension */;
+			targetProxy = CCDD00112233445500000009 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -449,6 +522,61 @@
 			};
 			name = Release;
 		};
+		CCDD00112233445500000006 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = CodexUsageWidgetExtension/CodexUsageWidgetExtension.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = HN6S8N7886;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = CodexUsageWidgetExtension/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Codex Usage";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.delikat.claudewidget.codexwidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		CCDD00112233445500000007 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = CodexUsageWidgetExtension/CodexUsageWidgetExtension.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = HN6S8N7886;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = CodexUsageWidgetExtension/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Codex Usage";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.delikat.claudewidget.codexwidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -488,6 +616,15 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		CCDD00112233445500000005 /* Build configuration list for PBXNativeTarget "CodexUsageWidgetExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CCDD00112233445500000006 /* Debug */,
+				CCDD00112233445500000007 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 /* End XCConfigurationList section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -496,6 +633,10 @@
 			productName = Shared;
 		};
 		AABB0011223344550000000B /* Shared */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = Shared;
+		};
+		CCDD0011223344550000000B /* Shared */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = Shared;
 		};
