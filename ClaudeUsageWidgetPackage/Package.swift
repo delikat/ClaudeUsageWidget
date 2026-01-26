@@ -14,7 +14,10 @@ let package = Package(
     targets: [
         .target(
             name: "Shared",
-            path: "Sources/Shared"
+            path: "Sources/Shared",
+            linkerSettings: [
+                .linkedFramework("Security")
+            ]
         ),
         .testTarget(
             name: "SharedTests",

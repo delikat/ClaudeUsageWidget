@@ -74,7 +74,7 @@ public struct CachedUsage: Codable, Sendable {
 public final class UsageCacheManager: Sendable {
     public static let shared = UsageCacheManager()
 
-    private let appGroupIdentifier = "HN6S8N7886.group.com.delikat.claudewidget"
+    private let appGroupIdentifier = AppGroup.identifier
     private let fileName = "UsageCache.json"
 
     private var fileURL: URL? {

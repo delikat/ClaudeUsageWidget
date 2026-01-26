@@ -4,8 +4,8 @@ import Foundation
 /// AppIntent that triggers a refresh by notifying the main app
 @available(macOS 14.0, *)
 public struct RefreshUsageIntent: AppIntent {
-    public static let title: LocalizedStringResource = "Refresh Claude Usage"
-    public static let description: IntentDescription = IntentDescription("Fetches the latest Claude API usage data")
+    public static let title: LocalizedStringResource = "Refresh Usage"
+    public static let description: IntentDescription = IntentDescription("Fetches the latest usage data")
 
     public init() {}
 
