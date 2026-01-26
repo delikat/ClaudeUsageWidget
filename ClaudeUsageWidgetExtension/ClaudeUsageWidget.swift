@@ -61,26 +61,28 @@ private struct PlanTitleText: View {
 }
 
 private struct ResetTimeText: View {
-    let text: String
+    let prefix: String
+    let date: Date
     let baseSize: CGFloat
 
-    init(_ text: String, baseSize: CGFloat = 9) {
-        self.text = text
+    init(prefix: String = "Resets in", date: Date, baseSize: CGFloat = 9) {
+        self.prefix = prefix
+        self.date = date
         self.baseSize = baseSize
+    }
+
+    private func textContent(size: CGFloat) -> some View {
+        (Text("\(prefix) ") + Text(date, style: .relative))
+            .font(.system(size: size, weight: .medium))
+            .lineLimit(1)
+            .truncationMode(.tail)
+            .minimumScaleFactor(0.9)
     }
 
     var body: some View {
         ViewThatFits(in: .horizontal) {
-            Text(text)
-                .font(.system(size: baseSize, weight: .medium))
-                .lineLimit(1)
-                .truncationMode(.tail)
-                .minimumScaleFactor(0.9)
-            Text(text)
-                .font(.system(size: max(baseSize - 1, 8), weight: .medium))
-                .lineLimit(1)
-                .truncationMode(.tail)
-                .minimumScaleFactor(0.9)
+            textContent(size: baseSize)
+            textContent(size: max(baseSize - 1, 8))
         }
         .foregroundStyle(Color.tertiaryText)
     }
@@ -214,7 +216,7 @@ struct SmallWidgetView: View {
 
                 // Reset time
                 if let resetAt = entry.usage.fiveHourResetAt {
-                    ResetTimeText("Resets in \(resetAt, style: .relative)")
+                    ResetTimeText(prefix: "Resets in", date: resetAt)
                 }
             }
             .padding(12)
@@ -253,7 +255,7 @@ struct MediumWidgetView: View {
                         }
                         ProgressBar(value: entry.usage.fiveHourUsage, color: usageColor(for: entry.usage.fiveHourUsage))
                         if let resetAt = entry.usage.fiveHourResetAt {
-                            ResetTimeText("in \(resetAt, style: .relative)")
+                            ResetTimeText(prefix: "in", date: resetAt)
                         }
                     }
                     .frame(maxWidth: .infinity)
@@ -272,7 +274,7 @@ struct MediumWidgetView: View {
                         }
                         ProgressBar(value: entry.usage.sevenDayUsage, color: usageColor(for: entry.usage.sevenDayUsage))
                         if let resetAt = entry.usage.sevenDayResetAt {
-                            ResetTimeText("in \(resetAt, style: .relative)")
+                            ResetTimeText(prefix: "in", date: resetAt)
                         }
                     }
                     .frame(maxWidth: .infinity)
@@ -395,7 +397,7 @@ struct SmallGaugeWidgetView: View {
 
                 // Reset time
                 if let resetAt = entry.usage.fiveHourResetAt {
-                    ResetTimeText("Resets in \(resetAt, style: .relative)")
+                    ResetTimeText(prefix: "Resets in", date: resetAt)
                 }
             }
             .padding(12)
@@ -433,7 +435,7 @@ struct MediumGaugeWidgetView: View {
                             percentageFontSize: 18
                         )
                         if let resetAt = entry.usage.fiveHourResetAt {
-                            ResetTimeText("in \(resetAt, style: .relative)")
+                            ResetTimeText(prefix: "in", date: resetAt)
                         }
                     }
 
@@ -449,7 +451,7 @@ struct MediumGaugeWidgetView: View {
                             percentageFontSize: 18
                         )
                         if let resetAt = entry.usage.sevenDayResetAt {
-                            ResetTimeText("in \(resetAt, style: .relative)")
+                            ResetTimeText(prefix: "in", date: resetAt)
                         }
                     }
                 }
