@@ -32,6 +32,35 @@ func usageColor(for value: Double) -> Color {
     }
 }
 
+// MARK: - Formatting Helpers
+
+private func formattedCost(_ value: Double) -> String {
+    let formatter = NumberFormatter()
+    formatter.numberStyle = .currency
+    formatter.currencyCode = "USD"
+    formatter.maximumFractionDigits = 2
+    formatter.minimumFractionDigits = 2
+    return formatter.string(from: NSNumber(value: value)) ?? "$0.00"
+}
+
+private func formattedTokens(_ value: Int) -> String {
+    let formatter = NumberFormatter()
+    formatter.numberStyle = .decimal
+    return formatter.string(from: NSNumber(value: value)) ?? "\(value)"
+}
+
+private func monthTitle(for identifier: String) -> String {
+    guard let date = MonthlyStats.monthDate(from: identifier) else { return identifier }
+    let formatter = DateFormatter()
+    formatter.dateFormat = "LLLL yyyy"
+    return formatter.string(from: date)
+}
+
+private func shortModelName(_ model: String) -> String {
+    let trimmed = model.replacingOccurrences(of: "claude-", with: "")
+    return trimmed.isEmpty ? model : trimmed
+}
+
 // MARK: - Text Helpers
 
 private struct PlanTitleText: View {
@@ -61,22 +90,24 @@ private struct PlanTitleText: View {
 }
 
 private struct ResetTimeText: View {
-    let text: String
+    let prefix: String
+    let date: Date
     let baseSize: CGFloat
 
-    init(_ text: String, baseSize: CGFloat = 9) {
-        self.text = text
+    init(_ prefix: String, date: Date, baseSize: CGFloat = 9) {
+        self.prefix = prefix
+        self.date = date
         self.baseSize = baseSize
     }
 
     var body: some View {
         ViewThatFits(in: .horizontal) {
-            Text(text)
+            (Text(prefix + " ") + Text(date, style: .relative))
                 .font(.system(size: baseSize, weight: .medium))
                 .lineLimit(1)
                 .truncationMode(.tail)
                 .minimumScaleFactor(0.9)
-            Text(text)
+            (Text(prefix + " ") + Text(date, style: .relative))
                 .font(.system(size: max(baseSize - 1, 8), weight: .medium))
                 .lineLimit(1)
                 .truncationMode(.tail)
@@ -156,17 +187,19 @@ struct CircularRingGauge: View {
 
 struct Provider: TimelineProvider {
     func placeholder(in context: Context) -> UsageEntry {
-        UsageEntry(date: Date(), usage: .placeholder)
+        UsageEntry(date: Date(), usage: .placeholder, monthly: .placeholder)
     }
 
     func getSnapshot(in context: Context, completion: @escaping (UsageEntry) -> Void) {
         let usage = UsageCacheManager.shared.read() ?? .placeholder
-        completion(UsageEntry(date: Date(), usage: usage))
+        let monthly = MonthlyUsageCacheManager.claude.read() ?? .placeholder
+        completion(UsageEntry(date: Date(), usage: usage, monthly: monthly))
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<UsageEntry>) -> Void) {
         let usage = UsageCacheManager.shared.read() ?? .noCredentialsError
-        let entry = UsageEntry(date: Date(), usage: usage)
+        let monthly = MonthlyUsageCacheManager.claude.read() ?? .noData
+        let entry = UsageEntry(date: Date(), usage: usage, monthly: monthly)
         // Refresh widget every 15 minutes
         let nextUpdate = Calendar.current.date(byAdding: .minute, value: 15, to: Date())!
         let timeline = Timeline(entries: [entry], policy: .after(nextUpdate))
@@ -179,6 +212,7 @@ struct Provider: TimelineProvider {
 struct UsageEntry: TimelineEntry {
     let date: Date
     let usage: CachedUsage
+    let monthly: CachedMonthlyUsage
 }
 
 // MARK: - Widget Views
@@ -214,7 +248,7 @@ struct SmallWidgetView: View {
 
                 // Reset time
                 if let resetAt = entry.usage.fiveHourResetAt {
-                    ResetTimeText("Resets in \(resetAt, style: .relative)")
+                    ResetTimeText("Resets in", date: resetAt)
                 }
             }
             .padding(12)
@@ -253,7 +287,7 @@ struct MediumWidgetView: View {
                         }
                         ProgressBar(value: entry.usage.fiveHourUsage, color: usageColor(for: entry.usage.fiveHourUsage))
                         if let resetAt = entry.usage.fiveHourResetAt {
-                            ResetTimeText("in \(resetAt, style: .relative)")
+                            ResetTimeText("in", date: resetAt)
                         }
                     }
                     .frame(maxWidth: .infinity)
@@ -272,7 +306,7 @@ struct MediumWidgetView: View {
                         }
                         ProgressBar(value: entry.usage.sevenDayUsage, color: usageColor(for: entry.usage.sevenDayUsage))
                         if let resetAt = entry.usage.sevenDayResetAt {
-                            ResetTimeText("in \(resetAt, style: .relative)")
+                            ResetTimeText("in", date: resetAt)
                         }
                     }
                     .frame(maxWidth: .infinity)
@@ -282,6 +316,146 @@ struct MediumWidgetView: View {
                 PlanTitleText(planTitle)
             }
             .padding(12)
+        }
+    }
+}
+
+struct LargeWidgetView: View {
+    let entry: UsageEntry
+
+    private var monthStats: MonthlyStats? {
+        let currentMonth = MonthlyStats.monthIdentifier(for: Date())
+        if let current = entry.monthly.months.first(where: { $0.month == currentMonth }) {
+            return current
+        }
+        return entry.monthly.months.sorted { $0.month > $1.month }.first
+    }
+
+    var body: some View {
+        if entry.monthly.error != nil || monthStats == nil {
+            MonthlyErrorView(error: entry.monthly.error)
+        } else if let stats = monthStats {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(monthTitle(for: stats.month))
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(Color.secondaryText)
+                        Text("Monthly Usage")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundStyle(Color.primaryText)
+                    }
+                    Spacer()
+                    MonthlyRefreshButton()
+                }
+
+                HStack(alignment: .top, spacing: 12) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(formattedCost(stats.totalCost))
+                            .font(.system(size: 32, weight: .bold, design: .monospaced))
+                            .foregroundStyle(Color.primaryText)
+
+                        TokenBreakdownView(stats: stats)
+
+                        ModelSummaryView(models: stats.models)
+                    }
+
+                    Spacer()
+
+                    MiniGaugeStack(entry: entry)
+                }
+            }
+            .padding(12)
+        }
+    }
+}
+
+private struct TokenBreakdownView: View {
+    let stats: MonthlyStats
+
+    var body: some View {
+        HStack(spacing: 12) {
+            TokenStat(label: "Input", value: stats.inputTokens)
+            TokenStat(label: "Output", value: stats.outputTokens)
+            TokenStat(label: "Cache Read", value: stats.cacheReadInputTokens)
+            TokenStat(label: "Cache Create", value: stats.cacheCreationInputTokens)
+        }
+    }
+}
+
+private struct TokenStat: View {
+    let label: String
+    let value: Int
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(label)
+                .font(.system(size: 9, weight: .medium))
+                .foregroundStyle(Color.tertiaryText)
+            Text(formattedTokens(value))
+                .font(.system(size: 12, weight: .semibold, design: .monospaced))
+                .foregroundStyle(Color.primaryText)
+        }
+    }
+}
+
+private struct ModelSummaryView: View {
+    let models: [ModelBreakdown]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Top Models")
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(Color.secondaryText)
+            ForEach(models.prefix(3)) { model in
+                HStack {
+                    Text(shortModelName(model.model))
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(Color.primaryText)
+                        .lineLimit(1)
+                    Spacer()
+                    Text(formattedCost(model.totalCost))
+                        .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                        .foregroundStyle(Color.secondaryText)
+                }
+            }
+        }
+    }
+}
+
+private struct MiniGaugeStack: View {
+    let entry: UsageEntry
+
+    var body: some View {
+        VStack(spacing: 8) {
+            MiniGauge(
+                label: "5h",
+                value: entry.usage.fiveHourUsage
+            )
+            MiniGauge(
+                label: "1w",
+                value: entry.usage.sevenDayUsage
+            )
+        }
+    }
+}
+
+private struct MiniGauge: View {
+    let label: String
+    let value: Double
+
+    var body: some View {
+        VStack(spacing: 4) {
+            Text(label)
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(Color.secondaryText)
+            CircularRingGauge(
+                value: value,
+                color: usageColor(for: value),
+                lineWidth: 6,
+                percentageFontSize: 10
+            )
+            .frame(width: 44, height: 44)
         }
     }
 }
@@ -360,6 +534,55 @@ struct ErrorView: View {
     }
 }
 
+struct MonthlyErrorView: View {
+    let error: CachedMonthlyUsage.CacheError?
+
+    private var title: String {
+        switch error {
+        case .readError:
+            return "Monthly Data Error"
+        default:
+            return "No Monthly Data"
+        }
+    }
+
+    private var message: String {
+        switch error {
+        case .readError:
+            return "Check Claude logs"
+        default:
+            return "Run Claude Code to generate logs"
+        }
+    }
+
+    var body: some View {
+        VStack(spacing: 8) {
+            HStack {
+                Spacer()
+                MonthlyRefreshButton()
+            }
+
+            Spacer()
+
+            Image(systemName: "calendar.badge.exclamationmark")
+                .font(.title2)
+                .foregroundStyle(Color.usageOrange)
+
+            Text(title)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(Color.primaryText)
+
+            Text(message)
+                .font(.system(size: 10, weight: .medium))
+                .foregroundStyle(Color.secondaryText)
+
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(12)
+    }
+}
+
 // MARK: - Gauge Widget Views
 
 struct SmallGaugeWidgetView: View {
@@ -395,7 +618,7 @@ struct SmallGaugeWidgetView: View {
 
                 // Reset time
                 if let resetAt = entry.usage.fiveHourResetAt {
-                    ResetTimeText("Resets in \(resetAt, style: .relative)")
+                    ResetTimeText("Resets in", date: resetAt)
                 }
             }
             .padding(12)
@@ -433,7 +656,7 @@ struct MediumGaugeWidgetView: View {
                             percentageFontSize: 18
                         )
                         if let resetAt = entry.usage.fiveHourResetAt {
-                            ResetTimeText("in \(resetAt, style: .relative)")
+                            ResetTimeText("in", date: resetAt)
                         }
                     }
 
@@ -449,7 +672,7 @@ struct MediumGaugeWidgetView: View {
                             percentageFontSize: 18
                         )
                         if let resetAt = entry.usage.sevenDayResetAt {
-                            ResetTimeText("in \(resetAt, style: .relative)")
+                            ResetTimeText("in", date: resetAt)
                         }
                     }
                 }
@@ -489,6 +712,8 @@ struct ClaudeUsageWidgetEntryView: View {
             SmallWidgetView(entry: entry)
         case .systemMedium:
             MediumWidgetView(entry: entry)
+        case .systemLarge:
+            LargeWidgetView(entry: entry)
         default:
             SmallWidgetView(entry: entry)
         }
@@ -507,7 +732,7 @@ struct ClaudeUsageWidget: Widget {
         }
         .configurationDisplayName("Claude Usage")
         .description("Monitor your Claude Code API usage limits")
-        .supportedFamilies([.systemSmall, .systemMedium])
+        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
     }
 }
 
@@ -540,6 +765,17 @@ struct RefreshButton: View {
     }
 }
 
+struct MonthlyRefreshButton: View {
+    var body: some View {
+        Button(intent: RefreshMonthlyUsageIntent()) {
+            Image(systemName: "arrow.clockwise")
+                .font(.system(size: 10))
+                .foregroundStyle(Color.secondaryText)
+        }
+        .buttonStyle(.plain)
+    }
+}
+
 // MARK: - Widget Bundle
 
 @main
@@ -555,29 +791,35 @@ struct ClaudeUsageWidgetBundle: WidgetBundle {
 #Preview("Small", as: .systemSmall) {
     ClaudeUsageWidget()
 } timeline: {
-    UsageEntry(date: Date(), usage: .placeholder)
+    UsageEntry(date: Date(), usage: .placeholder, monthly: .placeholder)
 }
 
 #Preview("Medium", as: .systemMedium) {
     ClaudeUsageWidget()
 } timeline: {
-    UsageEntry(date: Date(), usage: .placeholder)
+    UsageEntry(date: Date(), usage: .placeholder, monthly: .placeholder)
 }
 
 #Preview("Error State", as: .systemSmall) {
     ClaudeUsageWidget()
 } timeline: {
-    UsageEntry(date: Date(), usage: .noCredentialsError)
+    UsageEntry(date: Date(), usage: .noCredentialsError, monthly: .noData)
 }
 
 #Preview("Gauge Small", as: .systemSmall) {
     ClaudeUsageGaugeWidget()
 } timeline: {
-    UsageEntry(date: Date(), usage: .placeholder)
+    UsageEntry(date: Date(), usage: .placeholder, monthly: .placeholder)
 }
 
 #Preview("Gauge Medium", as: .systemMedium) {
     ClaudeUsageGaugeWidget()
 } timeline: {
-    UsageEntry(date: Date(), usage: .placeholder)
+    UsageEntry(date: Date(), usage: .placeholder, monthly: .placeholder)
+}
+
+#Preview("Large", as: .systemLarge) {
+    ClaudeUsageWidget()
+} timeline: {
+    UsageEntry(date: Date(), usage: .placeholder, monthly: .placeholder)
 }

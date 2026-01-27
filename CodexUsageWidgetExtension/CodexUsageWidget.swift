@@ -43,6 +43,37 @@ private func usageColor(for value: Double) -> Color {
     }
 }
 
+// MARK: - Formatting Helpers
+
+private func formattedCost(_ value: Double) -> String {
+    let formatter = NumberFormatter()
+    formatter.numberStyle = .currency
+    formatter.currencyCode = "USD"
+    formatter.maximumFractionDigits = 2
+    formatter.minimumFractionDigits = 2
+    return formatter.string(from: NSNumber(value: value)) ?? "$0.00"
+}
+
+private func formattedTokens(_ value: Int) -> String {
+    let formatter = NumberFormatter()
+    formatter.numberStyle = .decimal
+    return formatter.string(from: NSNumber(value: value)) ?? "\(value)"
+}
+
+private func monthTitle(for identifier: String) -> String {
+    guard let date = MonthlyStats.monthDate(from: identifier) else { return identifier }
+    let formatter = DateFormatter()
+    formatter.dateFormat = "LLLL yyyy"
+    return formatter.string(from: date)
+}
+
+private func shortModelName(_ model: String) -> String {
+    let trimmed = model
+        .replacingOccurrences(of: "gpt-", with: "")
+        .replacingOccurrences(of: "o1-", with: "o1-")
+    return trimmed.isEmpty ? model : trimmed
+}
+
 // MARK: - Card Background Modifier
 
 struct CodexCardBackground: ViewModifier {
@@ -137,17 +168,19 @@ struct CodexCircularRingGauge: View {
 
 struct CodexProvider: TimelineProvider {
     func placeholder(in context: Context) -> CodexUsageEntry {
-        CodexUsageEntry(date: Date(), usage: .placeholder)
+        CodexUsageEntry(date: Date(), usage: .placeholder, monthly: .placeholder)
     }
 
     func getSnapshot(in context: Context, completion: @escaping (CodexUsageEntry) -> Void) {
         let usage = UsageCacheManager.codex.read() ?? .placeholder
-        completion(CodexUsageEntry(date: Date(), usage: usage))
+        let monthly = MonthlyUsageCacheManager.codex.read() ?? .placeholder
+        completion(CodexUsageEntry(date: Date(), usage: usage, monthly: monthly))
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<CodexUsageEntry>) -> Void) {
         let usage = UsageCacheManager.codex.read() ?? .noCredentialsError
-        let entry = CodexUsageEntry(date: Date(), usage: usage)
+        let monthly = MonthlyUsageCacheManager.codex.read() ?? .noData
+        let entry = CodexUsageEntry(date: Date(), usage: usage, monthly: monthly)
         // Refresh widget every 15 minutes
         let nextUpdate = Calendar.current.date(byAdding: .minute, value: 15, to: Date())!
         let timeline = Timeline(entries: [entry], policy: .after(nextUpdate))
@@ -160,6 +193,7 @@ struct CodexProvider: TimelineProvider {
 struct CodexUsageEntry: TimelineEntry {
     let date: Date
     let usage: CachedUsage
+    let monthly: CachedMonthlyUsage
 }
 
 // MARK: - Widget Views
@@ -196,7 +230,7 @@ struct CodexSmallWidgetView: View {
                     CodexRefreshButton()
                     Spacer()
                     if let resetAt = entry.usage.fiveHourResetAt {
-                        Text("Resets in \(resetAt, style: .relative)")
+                        (Text("Resets in ") + Text(resetAt, style: .relative))
                             .font(.system(size: 9, weight: .medium))
                             .foregroundStyle(.secondary)
                     }
@@ -237,6 +271,124 @@ struct CodexMediumWidgetView: View {
     }
 }
 
+struct CodexLargeWidgetView: View {
+    let entry: CodexUsageEntry
+
+    private var monthStats: MonthlyStats? {
+        let currentMonth = MonthlyStats.monthIdentifier(for: Date())
+        if let current = entry.monthly.months.first(where: { $0.month == currentMonth }) {
+            return current
+        }
+        return entry.monthly.months.sorted { $0.month > $1.month }.first
+    }
+
+    var body: some View {
+        if entry.monthly.error != nil || monthStats == nil {
+            CodexMonthlyErrorView(error: entry.monthly.error)
+        } else if let stats = monthStats {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(monthTitle(for: stats.month))
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(.secondary)
+                        Text("Monthly Usage")
+                            .font(.system(size: 14, weight: .bold))
+                    }
+                    Spacer()
+                    CodexMonthlyRefreshButton()
+                }
+
+                HStack(alignment: .top, spacing: 12) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(formattedCost(stats.totalCost))
+                            .font(.system(size: 30, weight: .bold, design: .monospaced))
+
+                        HStack(spacing: 12) {
+                            CodexTokenStat(label: "Input", value: stats.inputTokens)
+                            CodexTokenStat(label: "Output", value: stats.outputTokens)
+                            CodexTokenStat(label: "Cache Read", value: stats.cacheReadInputTokens)
+                            CodexTokenStat(label: "Cache Create", value: stats.cacheCreationInputTokens)
+                        }
+
+                        CodexModelSummaryView(models: stats.models)
+                    }
+
+                    Spacer()
+
+                    CodexMiniGaugeStack(entry: entry)
+                }
+            }
+            .codexCardStyle(padding: 16)
+            .padding(6)
+        }
+    }
+}
+
+private struct CodexTokenStat: View {
+    let label: String
+    let value: Int
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(label)
+                .font(.system(size: 9, weight: .medium))
+                .foregroundStyle(.secondary)
+            Text(formattedTokens(value))
+                .font(.system(size: 12, weight: .semibold, design: .monospaced))
+        }
+    }
+}
+
+private struct CodexModelSummaryView: View {
+    let models: [ModelBreakdown]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Top Models")
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(.secondary)
+            ForEach(models.prefix(3)) { model in
+                HStack {
+                    Text(shortModelName(model.model))
+                        .font(.system(size: 11, weight: .medium))
+                        .lineLimit(1)
+                    Spacer()
+                    Text(formattedCost(model.totalCost))
+                        .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+    }
+}
+
+private struct CodexMiniGaugeStack: View {
+    let entry: CodexUsageEntry
+
+    var body: some View {
+        VStack(spacing: 8) {
+            CodexMiniGauge(label: "5h", value: entry.usage.fiveHourUsage)
+            CodexMiniGauge(label: "1w", value: entry.usage.sevenDayUsage)
+        }
+    }
+}
+
+private struct CodexMiniGauge: View {
+    let label: String
+    let value: Double
+
+    var body: some View {
+        VStack(spacing: 4) {
+            Text(label)
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(.secondary)
+            CodexCircularRingGauge(value: value, color: usageColor(for: value), lineWidth: 6)
+                .frame(width: 44, height: 44)
+        }
+    }
+}
+
 struct CodexUsageCard: View {
     let title: String
     let subtitle: String
@@ -272,7 +424,7 @@ struct CodexUsageCard: View {
                 }
                 Spacer()
                 if let resetAt = resetAt {
-                    Text("Resets in \(resetAt, style: .relative)")
+                    (Text("Resets in ") + Text(resetAt, style: .relative))
                         .font(.system(size: 9, weight: .medium))
                         .foregroundStyle(.secondary)
                 }
@@ -347,6 +499,55 @@ struct CodexErrorView: View {
     }
 }
 
+struct CodexMonthlyErrorView: View {
+    let error: CachedMonthlyUsage.CacheError?
+
+    private var title: String {
+        switch error {
+        case .readError:
+            return "Monthly Data Error"
+        default:
+            return "No Monthly Data"
+        }
+    }
+
+    private var message: String {
+        switch error {
+        case .readError:
+            return "Check Codex logs"
+        default:
+            return "Run Codex CLI to generate logs"
+        }
+    }
+
+    var body: some View {
+        VStack(spacing: 8) {
+            HStack {
+                Spacer()
+                CodexMonthlyRefreshButton()
+            }
+
+            Spacer()
+
+            Image(systemName: "calendar.badge.exclamationmark")
+                .font(.title2)
+                .foregroundStyle(Color.codexOrange)
+
+            Text(title)
+                .font(.system(size: 13, weight: .semibold))
+
+            Text(message)
+                .font(.system(size: 10, weight: .medium))
+                .foregroundStyle(.secondary)
+
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .codexCardStyle(padding: 16)
+        .padding(6)
+    }
+}
+
 // MARK: - Gauge Widget Views
 
 struct CodexSmallGaugeWidgetView: View {
@@ -376,7 +577,7 @@ struct CodexSmallGaugeWidgetView: View {
                 )
 
                 if let resetAt = entry.usage.fiveHourResetAt {
-                    Text("in \(resetAt, style: .relative)")
+                    (Text("in ") + Text(resetAt, style: .relative))
                         .font(.system(size: 9, weight: .medium))
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
@@ -447,7 +648,7 @@ struct CodexGaugeCard: View {
             )
 
             if let resetAt = resetAt {
-                Text("in \(resetAt, style: .relative)")
+                (Text("in ") + Text(resetAt, style: .relative))
                     .font(.system(size: 9, weight: .medium))
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
@@ -487,6 +688,8 @@ struct CodexUsageWidgetEntryView: View {
             CodexSmallWidgetView(entry: entry)
         case .systemMedium:
             CodexMediumWidgetView(entry: entry)
+        case .systemLarge:
+            CodexLargeWidgetView(entry: entry)
         default:
             CodexSmallWidgetView(entry: entry)
         }
@@ -505,7 +708,7 @@ struct CodexUsageWidget: Widget {
         }
         .configurationDisplayName("Codex Usage")
         .description("Monitor your OpenAI Codex API usage limits")
-        .supportedFamilies([.systemSmall, .systemMedium])
+        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
     }
 }
 
@@ -537,6 +740,16 @@ struct CodexRefreshButton: View {
     }
 }
 
+struct CodexMonthlyRefreshButton: View {
+    var body: some View {
+        Button(intent: RefreshCodexMonthlyUsageIntent()) {
+            Image(systemName: "arrow.clockwise")
+                .font(.caption)
+        }
+        .buttonStyle(.plain)
+    }
+}
+
 // MARK: - Widget Bundle
 
 @main
@@ -552,29 +765,35 @@ struct CodexUsageWidgetBundle: WidgetBundle {
 #Preview("Small", as: .systemSmall) {
     CodexUsageWidget()
 } timeline: {
-    CodexUsageEntry(date: Date(), usage: .placeholder)
+    CodexUsageEntry(date: Date(), usage: .placeholder, monthly: .placeholder)
 }
 
 #Preview("Medium", as: .systemMedium) {
     CodexUsageWidget()
 } timeline: {
-    CodexUsageEntry(date: Date(), usage: .placeholder)
+    CodexUsageEntry(date: Date(), usage: .placeholder, monthly: .placeholder)
 }
 
 #Preview("Error State", as: .systemSmall) {
     CodexUsageWidget()
 } timeline: {
-    CodexUsageEntry(date: Date(), usage: .noCredentialsError)
+    CodexUsageEntry(date: Date(), usage: .noCredentialsError, monthly: .noData)
 }
 
 #Preview("Gauge Small", as: .systemSmall) {
     CodexUsageGaugeWidget()
 } timeline: {
-    CodexUsageEntry(date: Date(), usage: .placeholder)
+    CodexUsageEntry(date: Date(), usage: .placeholder, monthly: .placeholder)
 }
 
 #Preview("Gauge Medium", as: .systemMedium) {
     CodexUsageGaugeWidget()
 } timeline: {
-    CodexUsageEntry(date: Date(), usage: .placeholder)
+    CodexUsageEntry(date: Date(), usage: .placeholder, monthly: .placeholder)
+}
+
+#Preview("Large", as: .systemLarge) {
+    CodexUsageWidget()
+} timeline: {
+    CodexUsageEntry(date: Date(), usage: .placeholder, monthly: .placeholder)
 }

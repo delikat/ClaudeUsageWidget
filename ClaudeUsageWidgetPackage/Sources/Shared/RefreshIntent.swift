@@ -43,8 +43,50 @@ public struct RefreshCodexUsageIntent: AppIntent {
     }
 }
 
+/// AppIntent that triggers a refresh for Claude monthly usage by notifying the main app
+@available(macOS 14.0, *)
+public struct RefreshMonthlyUsageIntent: AppIntent {
+    public static let title: LocalizedStringResource = "Refresh Claude Monthly Usage"
+    public static let description: IntentDescription = IntentDescription("Fetches the latest monthly Claude usage data from local logs")
+
+    public init() {}
+
+    @MainActor
+    public func perform() async throws -> some IntentResult {
+        DistributedNotificationCenter.default().postNotificationName(
+            MonthlyUsageProvider.claude.refreshNotificationName,
+            object: nil,
+            userInfo: nil,
+            deliverImmediately: true
+        )
+        return .result()
+    }
+}
+
+/// AppIntent that triggers a refresh for Codex monthly usage by notifying the main app
+@available(macOS 14.0, *)
+public struct RefreshCodexMonthlyUsageIntent: AppIntent {
+    public static let title: LocalizedStringResource = "Refresh Codex Monthly Usage"
+    public static let description: IntentDescription = IntentDescription("Fetches the latest monthly Codex usage data from local logs")
+
+    public init() {}
+
+    @MainActor
+    public func perform() async throws -> some IntentResult {
+        DistributedNotificationCenter.default().postNotificationName(
+            MonthlyUsageProvider.codex.refreshNotificationName,
+            object: nil,
+            userInfo: nil,
+            deliverImmediately: true
+        )
+        return .result()
+    }
+}
+
 /// Notification names for refresh requests
 public extension Notification.Name {
     static let refreshUsage = UsageProvider.claude.refreshNotificationName
     static let refreshCodexUsage = UsageProvider.codex.refreshNotificationName
+    static let refreshMonthlyUsage = MonthlyUsageProvider.claude.refreshNotificationName
+    static let refreshCodexMonthlyUsage = MonthlyUsageProvider.codex.refreshNotificationName
 }
