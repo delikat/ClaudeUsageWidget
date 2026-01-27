@@ -71,18 +71,18 @@ private struct ResetTimeText: View {
         self.baseSize = baseSize
     }
 
+    private func textContent(size: CGFloat) -> some View {
+        (Text("\(prefix) ") + Text(date, style: .relative))
+            .font(.system(size: size, weight: .medium))
+            .lineLimit(1)
+            .truncationMode(.tail)
+            .minimumScaleFactor(0.9)
+    }
+
     var body: some View {
         ViewThatFits(in: .horizontal) {
-            Text("\(prefix) \(date, style: .relative)")
-                .font(.system(size: baseSize, weight: .medium))
-                .lineLimit(1)
-                .truncationMode(.tail)
-                .minimumScaleFactor(0.9)
-            Text("\(prefix) \(date, style: .relative)")
-                .font(.system(size: max(baseSize - 1, 8), weight: .medium))
-                .lineLimit(1)
-                .truncationMode(.tail)
-                .minimumScaleFactor(0.9)
+            textContent(size: baseSize)
+            textContent(size: max(baseSize - 1, 8))
         }
         .foregroundStyle(Color.tertiaryText)
     }
