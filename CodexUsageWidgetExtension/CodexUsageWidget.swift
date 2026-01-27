@@ -470,13 +470,13 @@ struct CodexErrorView: View {
         case .networkError:
             return "Check connection"
         case .invalidToken:
-            return "Run `codex --login`"
+            return "Run `chatgpt auth`"
         case .apiError:
             return "Try again later"
         case .invalidCredentialsFormat:
-            return "Re-authenticate Codex"
+            return "Re-authenticate ChatGPT"
         default:
-            return "Install Codex CLI"
+            return "Install ChatGPT CLI"
         }
     }
 
@@ -706,8 +706,8 @@ struct CodexUsageWidget: Widget {
             CodexUsageWidgetEntryView(entry: entry)
                 .containerBackground(.fill.tertiary, for: .widget)
         }
-        .configurationDisplayName("Codex Usage")
-        .description("Monitor your OpenAI Codex API usage limits")
+        .configurationDisplayName("ChatGPT Usage")
+        .description("Monitor your ChatGPT API usage limits")
         .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
     }
 }
@@ -722,8 +722,8 @@ struct CodexUsageGaugeWidget: Widget {
             CodexGaugeWidgetEntryView(entry: entry)
                 .containerBackground(.fill.tertiary, for: .widget)
         }
-        .configurationDisplayName("Codex Usage (Gauge)")
-        .description("Circular gauge showing Codex API usage")
+        .configurationDisplayName("ChatGPT Usage (Gauge)")
+        .description("Circular gauge showing ChatGPT API usage")
         .supportedFamilies([.systemSmall, .systemMedium])
     }
 }

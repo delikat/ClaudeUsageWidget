@@ -52,7 +52,7 @@ public struct CachedUsage: Codable, Sendable {
             sevenDayResetAt: Date().addingTimeInterval(86400),
             fetchedAt: Date(),
             error: nil,
-            planTitle: "Max 20x"
+            planTitle: "Claude Max 20x"
         )
     }
 

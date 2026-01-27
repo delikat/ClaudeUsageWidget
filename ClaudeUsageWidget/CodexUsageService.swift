@@ -61,7 +61,7 @@ final class CodexUsageService: Sendable {
                 sevenDayResetAt: Date(timeIntervalSince1970: Double(usage.rateLimit.secondaryWindow.resetAt)),
                 fetchedAt: Date(),
                 error: nil,
-                planTitle: formatPlanType(usage.planType)
+                planTitle: "ChatGPT \(formatPlanType(usage.planType))"
             )
             try UsageCacheManager.codex.write(cached)
             await MainActor.run {

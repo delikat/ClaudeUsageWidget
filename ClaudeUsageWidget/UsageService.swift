@@ -62,7 +62,7 @@ final class UsageService: Sendable {
                 sevenDayResetAt: parseISO8601Date(usage.sevenDay.resetsAt),
                 fetchedAt: Date(),
                 error: nil,
-                planTitle: credentials.claudeAiOauth.displayTier
+                planTitle: credentials.claudeAiOauth.displayTier.map { "Claude \($0)" }
             )
             try UsageCacheManager.shared.write(cached)
             await MainActor.run {
