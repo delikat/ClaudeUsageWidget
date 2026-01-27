@@ -549,6 +549,7 @@ struct ClaudeUsageWidgetBundle: WidgetBundle {
     var body: some Widget {
         ClaudeUsageWidget()
         ClaudeUsageGaugeWidget()
+        UsageHeatmapWidget()
     }
 }
 
