@@ -52,7 +52,7 @@ public struct CachedUsage: Codable, Sendable {
             sevenDayResetAt: Date().addingTimeInterval(86400),
             fetchedAt: Date(),
             error: nil,
-            planTitle: "Max 20x"
+            planTitle: "Claude Max 20x"
         )
     }
 
@@ -70,20 +70,75 @@ public struct CachedUsage: Codable, Sendable {
     }
 }
 
+/// Provider type for usage cache
+public enum UsageProvider: String, Sendable {
+    case claude
+    case codex
+
+    var fileName: String {
+        switch self {
+        case .claude:
+            return "UsageCache.json"
+        case .codex:
+            return "CodexUsageCache.json"
+        }
+    }
+
+    /// Distributed notification name for refresh requests
+    public var refreshNotificationName: Notification.Name {
+        switch self {
+        case .claude:
+            return Notification.Name("com.delikat.claudewidget.refresh")
+        case .codex:
+            return Notification.Name("com.delikat.claudewidget.codex.refresh")
+        }
+    }
+}
+
+/// Provider type for monthly usage cache
+public enum MonthlyUsageProvider: String, Sendable {
+    case claude
+    case codex
+
+    var fileName: String {
+        switch self {
+        case .claude:
+            return "ClaudeMonthlyUsage.json"
+        case .codex:
+            return "CodexMonthlyUsage.json"
+        }
+    }
+
+    /// Distributed notification name for monthly refresh requests
+    public var refreshNotificationName: Notification.Name {
+        switch self {
+        case .claude:
+            return Notification.Name("com.delikat.claudewidget.monthly.refresh")
+        case .codex:
+            return Notification.Name("com.delikat.claudewidget.codex.monthly.refresh")
+        }
+    }
+}
+
 /// Manages reading and writing cached usage data to App Group container
 public final class UsageCacheManager: Sendable {
-    public static let shared = UsageCacheManager()
+    /// Shared instance for Claude (backwards compatible)
+    public static let shared = UsageCacheManager(provider: .claude)
+    /// Shared instance for Codex
+    public static let codex = UsageCacheManager(provider: .codex)
 
+    public let provider: UsageProvider
     private let appGroupIdentifier = AppGroup.identifier
-    private let fileName = "UsageCache.json"
 
     private var fileURL: URL? {
         FileManager.default
             .containerURL(forSecurityApplicationGroupIdentifier: appGroupIdentifier)?
-            .appendingPathComponent(fileName)
+            .appendingPathComponent(provider.fileName)
     }
 
-    private init() {}
+    public init(provider: UsageProvider) {
+        self.provider = provider
+    }
 
     /// Read cached usage data from App Group container
     public func read() -> CachedUsage? {
@@ -120,7 +175,7 @@ public final class UsageCacheManager: Sendable {
             print("UsageCacheManager: Created container directory at \(containerURL.path)")
         }
 
-        let url = containerURL.appendingPathComponent(fileName)
+        let url = containerURL.appendingPathComponent(provider.fileName)
         print("UsageCacheManager: Writing cache to \(url.path)")
 
         let encoder = JSONEncoder()
@@ -134,5 +189,68 @@ public final class UsageCacheManager: Sendable {
 
     public enum CacheWriteError: Error {
         case noContainerURL
+    }
+}
+
+/// Manages reading and writing cached monthly usage data to App Group container
+public final class MonthlyUsageCacheManager: Sendable {
+    public static let claude = MonthlyUsageCacheManager(provider: .claude)
+    public static let codex = MonthlyUsageCacheManager(provider: .codex)
+
+    public let provider: MonthlyUsageProvider
+    private let appGroupIdentifier = AppGroup.identifier
+
+    private var fileURL: URL? {
+        FileManager.default
+            .containerURL(forSecurityApplicationGroupIdentifier: appGroupIdentifier)?
+            .appendingPathComponent(provider.fileName)
+    }
+
+    public init(provider: MonthlyUsageProvider) {
+        self.provider = provider
+    }
+
+    public func read() -> CachedMonthlyUsage? {
+        guard let url = fileURL else {
+            print("MonthlyUsageCacheManager: Could not get App Group container URL")
+            return nil
+        }
+
+        guard FileManager.default.fileExists(atPath: url.path) else {
+            return nil
+        }
+
+        do {
+            let data = try Data(contentsOf: url)
+            let decoder = JSONDecoder()
+            decoder.dateDecodingStrategy = .iso8601
+            return try decoder.decode(CachedMonthlyUsage.self, from: data)
+        } catch {
+            print("MonthlyUsageCacheManager: Failed to read cache: \(error)")
+            return nil
+        }
+    }
+
+    public func write(_ cache: CachedMonthlyUsage) throws {
+        guard let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupIdentifier) else {
+            print("MonthlyUsageCacheManager: ERROR - containerURL returned nil for \(appGroupIdentifier)")
+            throw UsageCacheManager.CacheWriteError.noContainerURL
+        }
+
+        if !FileManager.default.fileExists(atPath: containerURL.path) {
+            try FileManager.default.createDirectory(at: containerURL, withIntermediateDirectories: true)
+            print("MonthlyUsageCacheManager: Created container directory at \(containerURL.path)")
+        }
+
+        let url = containerURL.appendingPathComponent(provider.fileName)
+        print("MonthlyUsageCacheManager: Writing cache to \(url.path)")
+
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        encoder.outputFormatting = .prettyPrinted
+
+        let data = try encoder.encode(cache)
+        try data.write(to: url, options: .atomic)
+        print("MonthlyUsageCacheManager: Successfully wrote cache")
     }
 }

@@ -189,37 +189,98 @@ struct SettingsView: View {
 
 class AppDelegate: NSObject, NSApplicationDelegate {
     private var refreshTimer: Timer?
-    private var notificationObserver: Any?
+    private var historyTimer: Timer?
+    private var claudeNotificationObserver: Any?
+    private var codexNotificationObserver: Any?
+    private var claudeMonthlyNotificationObserver: Any?
+    private var codexMonthlyNotificationObserver: Any?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         print("ClaudeUsageWidget: App launched")
 
-        // Listen for refresh notifications from widget
-        notificationObserver = DistributedNotificationCenter.default().addObserver(
+        // Request notification permission for usage alerts
+        NotificationManager.shared.requestPermission()
+
+        // Listen for Claude refresh notifications from widget
+        claudeNotificationObserver = DistributedNotificationCenter.default().addObserver(
             forName: .refreshUsage,
             object: nil,
             queue: .main
         ) { _ in
-            print("ClaudeUsageWidget: Received refresh notification from widget")
+            print("ClaudeUsageWidget: Received Claude refresh notification from widget")
             Task {
                 await UsageService.shared.fetchAndCache()
-                await CodexUsageService.shared.fetchAndCache()
+                await ClaudeJSONLService.shared.fetchAndCache()
             }
         }
 
-        // Initial fetch
-        Task {
-            await UsageService.shared.fetchAndCache()
-            await CodexUsageService.shared.fetchAndCache()
+        // Listen for Codex refresh notifications from widget
+        codexNotificationObserver = DistributedNotificationCenter.default().addObserver(
+            forName: .refreshCodexUsage,
+            object: nil,
+            queue: .main
+        ) { _ in
+            print("ClaudeUsageWidget: Received Codex refresh notification from widget")
+            Task {
+                await self.refreshCodexIfAvailable()
+                await CodexJSONLService.shared.fetchAndCache()
+            }
         }
+
+        // Listen for Claude monthly refresh notifications from widget
+        claudeMonthlyNotificationObserver = DistributedNotificationCenter.default().addObserver(
+            forName: .refreshMonthlyUsage,
+            object: nil,
+            queue: .main
+        ) { _ in
+            print("ClaudeUsageWidget: Received Claude monthly refresh notification from widget")
+            Task {
+                await UsageService.shared.fetchAndCache()
+                await ClaudeJSONLService.shared.fetchAndCache()
+            }
+        }
+
+        // Listen for Codex monthly refresh notifications from widget
+        codexMonthlyNotificationObserver = DistributedNotificationCenter.default().addObserver(
+            forName: .refreshCodexMonthlyUsage,
+            object: nil,
+            queue: .main
+        ) { _ in
+            print("ClaudeUsageWidget: Received Codex monthly refresh notification from widget")
+            Task {
+                await self.refreshCodexIfAvailable()
+                await CodexJSONLService.shared.fetchAndCache()
+            }
+        }
+
+        // Initial fetch for both services
+        refreshAll()
 
         // Schedule periodic refresh every 15 minutes
         schedulePeriodicRefresh()
+
+        // Initial history update (scans JSONL files for heatmap)
+        Task {
+            await HistoryService.shared.updateHistory()
+        }
+
+        // Schedule periodic history updates (every hour)
+        scheduleHistoryUpdates()
     }
 
     func applicationWillTerminate(_ notification: Notification) {
         refreshTimer?.invalidate()
-        if let observer = notificationObserver {
+        historyTimer?.invalidate()
+        if let observer = claudeNotificationObserver {
+            DistributedNotificationCenter.default().removeObserver(observer)
+        }
+        if let observer = codexNotificationObserver {
+            DistributedNotificationCenter.default().removeObserver(observer)
+        }
+        if let observer = claudeMonthlyNotificationObserver {
+            DistributedNotificationCenter.default().removeObserver(observer)
+        }
+        if let observer = codexMonthlyNotificationObserver {
             DistributedNotificationCenter.default().removeObserver(observer)
         }
     }
@@ -228,10 +289,35 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Refresh every 15 minutes
         refreshTimer = Timer.scheduledTimer(withTimeInterval: 15 * 60, repeats: true) { _ in
             print("ClaudeUsageWidget: Periodic refresh triggered")
+            self.refreshAll()
+        }
+    }
+
+    private func scheduleHistoryUpdates() {
+        // Update history every hour (HistoryService has internal throttling too)
+        historyTimer = Timer.scheduledTimer(withTimeInterval: 60 * 60, repeats: true) { _ in
+            print("ClaudeUsageWidget: Periodic history update triggered")
             Task {
-                await UsageService.shared.fetchAndCache()
-                await CodexUsageService.shared.fetchAndCache()
+                await HistoryService.shared.updateHistory()
             }
         }
+    }
+
+    private func refreshAll() {
+        Task {
+            async let claudeRefresh = UsageService.shared.fetchAndCache()
+            async let codexRefresh = refreshCodexIfAvailable()
+            async let claudeMonthlyRefresh = ClaudeJSONLService.shared.fetchAndCache()
+            async let codexMonthlyRefresh = CodexJSONLService.shared.fetchAndCache()
+            _ = await (claudeRefresh, codexRefresh, claudeMonthlyRefresh, codexMonthlyRefresh)
+        }
+    }
+
+    private func refreshCodexIfAvailable() async {
+        guard CodexCredentials.hasCredentials() else {
+            print("ClaudeUsageWidget: Skipping Codex refresh (no credentials)")
+            return
+        }
+        await CodexUsageService.shared.fetchAndCache()
     }
 }

@@ -1,0 +1,259 @@
+import Foundation
+
+/// Parser for Claude and Codex JSONL conversation logs
+public struct JSONLParser {
+
+    /// Parsed conversation entry with timestamp and estimated tokens
+    public struct ConversationEntry: Sendable {
+        public let timestamp: Date
+        public let estimatedTokens: Int
+        public let provider: Provider
+
+        public enum Provider: String, Sendable {
+            case claude
+            case codex
+        }
+    }
+
+    /// Parse JSONL files from Claude conversation logs
+    /// Path pattern: ~/.claude/projects/**/*.jsonl
+    public static func parseClaudeLogs() -> [ConversationEntry] {
+        let homeDir = FileManager.default.homeDirectoryForCurrentUser
+        let claudeProjectsDir = homeDir.appendingPathComponent(".claude/projects")
+
+        guard FileManager.default.fileExists(atPath: claudeProjectsDir.path) else {
+            print("JSONLParser: Claude projects directory not found at \(claudeProjectsDir.path)")
+            return []
+        }
+
+        let jsonlFiles = findJSONLFiles(in: claudeProjectsDir)
+        print("JSONLParser: Found \(jsonlFiles.count) Claude JSONL files")
+
+        var entries: [ConversationEntry] = []
+        for file in jsonlFiles {
+            entries.append(contentsOf: parseClaudeJSONLFile(at: file))
+        }
+
+        return entries
+    }
+
+    /// Parse JSONL files from Codex session logs
+    /// Path pattern: ~/.codex/sessions/**/*.jsonl
+    public static func parseCodexLogs() -> [ConversationEntry] {
+        let homeDir = FileManager.default.homeDirectoryForCurrentUser
+        let codexSessionsDir = homeDir.appendingPathComponent(".codex/sessions")
+
+        guard FileManager.default.fileExists(atPath: codexSessionsDir.path) else {
+            print("JSONLParser: Codex sessions directory not found at \(codexSessionsDir.path)")
+            return []
+        }
+
+        let jsonlFiles = findJSONLFiles(in: codexSessionsDir)
+        print("JSONLParser: Found \(jsonlFiles.count) Codex JSONL files")
+
+        var entries: [ConversationEntry] = []
+        for file in jsonlFiles {
+            entries.append(contentsOf: parseCodexJSONLFile(at: file))
+        }
+
+        return entries
+    }
+
+    /// Find all .jsonl files recursively in a directory
+    private static func findJSONLFiles(in directory: URL) -> [URL] {
+        var jsonlFiles: [URL] = []
+
+        guard let enumerator = FileManager.default.enumerator(
+            at: directory,
+            includingPropertiesForKeys: [.isRegularFileKey],
+            options: [.skipsHiddenFiles, .skipsPackageDescendants]
+        ) else {
+            return []
+        }
+
+        for case let fileURL as URL in enumerator {
+            if fileURL.pathExtension == "jsonl" {
+                jsonlFiles.append(fileURL)
+            }
+        }
+
+        return jsonlFiles
+    }
+
+    /// Parse a Claude JSONL file
+    /// Claude format: {"type":"user"|"assistant","message":{...},"timestamp":"2025-06-02T18:46:59.937Z"}
+    private static func parseClaudeJSONLFile(at url: URL) -> [ConversationEntry] {
+        guard let data = try? Data(contentsOf: url),
+              let content = String(data: data, encoding: .utf8) else {
+            return []
+        }
+
+        var entries: [ConversationEntry] = []
+        let lines = content.components(separatedBy: .newlines)
+
+        let dateFormatter = ISO8601DateFormatter()
+        dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+
+        let fallbackFormatter = ISO8601DateFormatter()
+        fallbackFormatter.formatOptions = [.withInternetDateTime]
+
+        for line in lines where !line.isEmpty {
+            guard let lineData = line.data(using: .utf8),
+                  let json = try? JSONSerialization.jsonObject(with: lineData) as? [String: Any],
+                  let timestampStr = json["timestamp"] as? String,
+                  let timestamp = dateFormatter.date(from: timestampStr) ?? fallbackFormatter.date(from: timestampStr) else {
+                continue
+            }
+
+            // Estimate tokens from message content
+            let tokens = estimateTokensFromClaudeMessage(json)
+            if tokens > 0 {
+                entries.append(ConversationEntry(timestamp: timestamp, estimatedTokens: tokens, provider: .claude))
+            }
+        }
+
+        return entries
+    }
+
+    /// Parse a Codex JSONL file
+    /// Codex format may vary - try to extract timestamp and content
+    private static func parseCodexJSONLFile(at url: URL) -> [ConversationEntry] {
+        guard let data = try? Data(contentsOf: url),
+              let content = String(data: data, encoding: .utf8) else {
+            return []
+        }
+
+        var entries: [ConversationEntry] = []
+        let lines = content.components(separatedBy: .newlines)
+
+        let dateFormatter = ISO8601DateFormatter()
+        dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+
+        let fallbackFormatter = ISO8601DateFormatter()
+        fallbackFormatter.formatOptions = [.withInternetDateTime]
+
+        for line in lines where !line.isEmpty {
+            guard let lineData = line.data(using: .utf8),
+                  let json = try? JSONSerialization.jsonObject(with: lineData) as? [String: Any] else {
+                continue
+            }
+
+            // Try to find timestamp in various possible fields
+            let timestampStr = (json["timestamp"] as? String)
+                ?? (json["createdAt"] as? String)
+                ?? (json["created_at"] as? String)
+
+            guard let tsStr = timestampStr,
+                  let timestamp = dateFormatter.date(from: tsStr) ?? fallbackFormatter.date(from: tsStr) else {
+                continue
+            }
+
+            // Estimate tokens from message content
+            let tokens = estimateTokensFromCodexMessage(json)
+            if tokens > 0 {
+                entries.append(ConversationEntry(timestamp: timestamp, estimatedTokens: tokens, provider: .codex))
+            }
+        }
+
+        return entries
+    }
+
+    /// Estimate tokens from Claude message JSON
+    private static func estimateTokensFromClaudeMessage(_ json: [String: Any]) -> Int {
+        guard let message = json["message"] as? [String: Any] else {
+            return 0
+        }
+
+        var totalChars = 0
+
+        // Handle content field - can be string or array
+        if let contentString = message["content"] as? String {
+            totalChars += contentString.count
+        } else if let contentArray = message["content"] as? [[String: Any]] {
+            for item in contentArray {
+                if let text = item["text"] as? String {
+                    totalChars += text.count
+                }
+            }
+        }
+
+        // Approximate tokens: ~4 characters per token
+        return max(1, totalChars / 4)
+    }
+
+    /// Estimate tokens from Codex message JSON
+    private static func estimateTokensFromCodexMessage(_ json: [String: Any]) -> Int {
+        var totalChars = 0
+
+        // Try various content fields
+        if let content = json["content"] as? String {
+            totalChars += content.count
+        } else if let message = json["message"] as? String {
+            totalChars += message.count
+        } else if let text = json["text"] as? String {
+            totalChars += text.count
+        } else if let message = json["message"] as? [String: Any] {
+            if let content = message["content"] as? String {
+                totalChars += content.count
+            }
+        }
+
+        // Approximate tokens: ~4 characters per token
+        return max(0, totalChars / 4)
+    }
+}
+
+/// Aggregator to convert conversation entries into daily usage
+public struct UsageAggregator {
+
+    /// Aggregate conversation entries into daily usage data
+    public static func aggregate(entries: [JSONLParser.ConversationEntry]) -> [DailyUsage] {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+
+        // Group entries by date and provider
+        var dailyData: [String: (claude: Int, codex: Int)] = [:]
+
+        for entry in entries {
+            let dateKey = dateFormatter.string(from: entry.timestamp)
+            var current = dailyData[dateKey] ?? (claude: 0, codex: 0)
+
+            switch entry.provider {
+            case .claude:
+                current.claude += entry.estimatedTokens
+            case .codex:
+                current.codex += entry.estimatedTokens
+            }
+
+            dailyData[dateKey] = current
+        }
+
+        // Convert to DailyUsage array, sorted by date descending
+        let sortedDates = dailyData.keys.sorted().reversed()
+        return sortedDates.map { date in
+            let data = dailyData[date]!
+            return DailyUsage(date: date, claudeTokens: data.claude, codexTokens: data.codex)
+        }
+    }
+
+    /// Merge new aggregated data with existing history, keeping last 90 days
+    public static func merge(new: [DailyUsage], existing: UsageHistory) -> UsageHistory {
+        var merged: [String: DailyUsage] = [:]
+
+        // Add existing entries
+        for entry in existing.entries {
+            merged[entry.date] = entry
+        }
+
+        // Update/add new entries
+        for entry in new {
+            merged[entry.date] = entry
+        }
+
+        // Sort by date descending and keep last 90 days
+        let sorted = merged.values.sorted { $0.date > $1.date }
+        let trimmed = Array(sorted.prefix(90))
+
+        return UsageHistory(entries: trimmed)
+    }
+}
