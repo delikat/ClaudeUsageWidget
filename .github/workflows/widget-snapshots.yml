@@ -66,10 +66,11 @@ jobs:
             const files = fs.readdirSync(snapshotDir).filter(f => f.endsWith('.png')).sort();
             const lightFiles = files.filter(f => !f.includes('-dark'));
 
-            const branch = context.payload.pull_request.head.ref;
-            const repo = context.repo.repo;
-            const owner = context.repo.owner;
-            const rawBase = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/docs/widget-snapshots`;
+            const head = context.payload.pull_request?.head;
+            const owner = head?.repo?.owner?.login ?? context.repo.owner;
+            const repo = head?.repo?.name ?? context.repo.repo;
+            const ref = head?.sha ?? context.sha;
+            const rawBase = `https://raw.githubusercontent.com/${owner}/${repo}/${ref}/docs/widget-snapshots`;
 
             let markdown = `## Widget Snapshots\n\n`;
             markdown += `<details>\n<summary>Click to preview widgets (${lightFiles.length} light mode shown, dark mode also available)</summary>\n\n`;
