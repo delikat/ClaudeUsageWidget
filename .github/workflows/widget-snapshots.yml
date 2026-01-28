@@ -4,7 +4,7 @@ on:
   pull_request:
 
 permissions:
-  contents: write
+  contents: read
   pull-requests: write
 
 jobs:
@@ -29,32 +29,13 @@ jobs:
             test \
             2>&1 | tail -50
 
-      - name: Copy snapshots to docs
-        run: |
-          mkdir -p docs/widget-snapshots
-          if compgen -G ".context/widget-snapshots/*.png" > /dev/null; then
-            cp .context/widget-snapshots/*.png docs/widget-snapshots/
-          else
-            echo "No snapshot PNGs found in .context/widget-snapshots"
-          fi
-
-      - name: Check for changes
-        id: changes
-        run: |
-          if git diff --quiet docs/widget-snapshots/; then
-            echo "changed=false" >> $GITHUB_OUTPUT
-          else
-            echo "changed=true" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Commit snapshots
-        if: steps.changes.outputs.changed == 'true'
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add docs/widget-snapshots/
-          git commit -m "Update widget snapshots"
-          git push
+      - name: Upload snapshots artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: widget-snapshots
+          path: .context/widget-snapshots
+          if-no-files-found: warn
 
       - name: Comment on PR with widget previews
         uses: actions/github-script@v7
@@ -62,38 +43,44 @@ jobs:
           script: |
             const fs = require('fs');
 
-            const snapshotDir = 'docs/widget-snapshots';
-            const files = fs.readdirSync(snapshotDir).filter(f => f.endsWith('.png')).sort();
-            const lightFiles = files.filter(f => !f.includes('-dark'));
-
-            const head = context.payload.pull_request?.head;
-            const owner = head?.repo?.owner?.login ?? context.repo.owner;
-            const repo = head?.repo?.name ?? context.repo.repo;
-            const ref = head?.sha ?? context.sha;
-            const rawBase = `https://raw.githubusercontent.com/${owner}/${repo}/${ref}/docs/widget-snapshots`;
+            const snapshotDir = '.context/widget-snapshots';
+            const files = fs.existsSync(snapshotDir)
+              ? fs.readdirSync(snapshotDir).filter(f => f.endsWith('.png')).sort()
+              : [];
+            const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const claudeFiles = files.filter(f => f.startsWith('claude-'));
+            const codexFiles = files.filter(f => f.startsWith('codex-'));
+            const otherFiles = files.filter(f => !f.startsWith('claude-') && !f.startsWith('codex-'));
 
             let markdown = `## Widget Snapshots\n\n`;
-            markdown += `<details>\n<summary>Click to preview widgets (${lightFiles.length} light mode shown, dark mode also available)</summary>\n\n`;
-
-            // Claude widgets
-            const claudeWidgets = lightFiles.filter(f => f.startsWith('claude-'));
-            if (claudeWidgets.length > 0) {
-              markdown += `### Claude\n\n`;
-              for (const file of claudeWidgets) {
-                const name = file.replace('.png', '').replace('claude-', '');
-                markdown += `**${name}**\n\n`;
-                markdown += `![${name}](${rawBase}/${file})\n\n`;
+            markdown += `Snapshots are uploaded as a workflow artifact (no auto-commit).\n\n`;
+            markdown += `Download: ${runUrl}\n\n`;
+            markdown += `<details>\n<summary>Snapshot files (${files.length} total)</summary>\n\n`;
+            if (files.length === 0) {
+              markdown += `No PNGs found for this run.\n\n`;
+            } else {
+              if (claudeFiles.length > 0) {
+                markdown += `### Claude\n\n`;
+                for (const file of claudeFiles) {
+                  markdown += `- ${file}\n`;
+                }
+                markdown += `\n`;
               }
-            }
 
-            // Codex widgets
-            const codexWidgets = lightFiles.filter(f => f.startsWith('codex-'));
-            if (codexWidgets.length > 0) {
-              markdown += `### Codex\n\n`;
-              for (const file of codexWidgets) {
-                const name = file.replace('.png', '').replace('codex-', '');
-                markdown += `**${name}**\n\n`;
-                markdown += `![${name}](${rawBase}/${file})\n\n`;
+              if (codexFiles.length > 0) {
+                markdown += `### Codex\n\n`;
+                for (const file of codexFiles) {
+                  markdown += `- ${file}\n`;
+                }
+                markdown += `\n`;
+              }
+
+              if (otherFiles.length > 0) {
+                markdown += `### Other\n\n`;
+                for (const file of otherFiles) {
+                  markdown += `- ${file}\n`;
+                }
+                markdown += `\n`;
               }
             }
 
