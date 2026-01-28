@@ -61,11 +61,8 @@ xcodebuild -workspace ClaudeUsageWidget.xcworkspace -scheme ClaudeUsageWidgetUIT
 - **Snapshotting widgets:** Run the `WidgetSnapshotTests` scheme to render all widget variants to PNGs (light + dark). Defaults to `.context/widget-snapshots` with `-dark` filename suffix for dark mode. You can override the output directory via `WIDGET_SNAPSHOT_DIR`.
 - **Updating widgets during development:** After building, run these commands to see changes immediately in WidgetKit Simulator (no restart needed):
   ```bash
-  # Copy build to /Applications and kill widget extensions to force reload
-  cp -R ~/Library/Developer/Xcode/DerivedData/ClaudeUsageWidget-*/Build/Products/Debug/ClaudeUsageWidget.app /Applications/
   killall ClaudeUsageWidgetExtension CodexUsageWidgetExtension 2>/dev/null
   ```
-  Then click "Reload" in WidgetKit Simulator. The extensions reload automatically with the new code.
 - Most development happens in `ClaudeUsageWidgetPackage/Sources/Shared/`
 - Types exposed to app targets require `public` access modifier
 - Widget supports Small (1x1) and Medium (2x1) families
