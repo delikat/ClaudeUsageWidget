@@ -71,6 +71,17 @@ targets: [
 - **UI Tests**: `ClaudeUsageWidgetUITests/` (XCUITest framework)
 - **Test Plan**: `ClaudeUsageWidget.xctestplan` coordinates all tests
 
+### Widget Snapshots (CLI/CI)
+Generate widget PNGs from the command line (no WidgetKit Simulator needed):
+```bash
+xcodebuild -workspace ClaudeUsageWidget.xcworkspace -scheme WidgetSnapshotTests test
+```
+Snapshots are written to `.context/widget-snapshots` by default. Override the output directory:
+```bash
+WIDGET_SNAPSHOT_DIR=docs/screenshots xcodebuild -workspace ClaudeUsageWidget.xcworkspace -scheme WidgetSnapshotTests test
+```
+Dark mode variants are saved with a `-dark` suffix (for example `claude-small-dark.png`).
+
 ## Configuration
 
 ### XCConfig Build Settings

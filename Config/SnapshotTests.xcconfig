@@ -1,0 +1,7 @@
+// SnapshotTests.xcconfig
+// Configuration for widget snapshot test target
+
+#include "Shared.xcconfig"
+
+PRODUCT_BUNDLE_IDENTIFIER = com.delikat.claudewidget.snapshottests
+PRODUCT_MODULE_NAME = WidgetSnapshotTests
