@@ -10,22 +10,22 @@
   ],
   "defaultOptions" : {
     "targetForVariableExpansion" : {
-      "containerPath" : "container:ClaudeUsageWidget.xcodeproj",
+      "containerPath" : "container:AgentUsage.xcodeproj",
       "identifier" : "8BC2655B2DEDD3F400F279A4",
-      "name" : "ClaudeUsageWidget"
+      "name" : "AgentUsage"
     }
   },
   "testTargets" : [
     {
       "target" : {
-        "containerPath" : "container:ClaudeUsageWidget.xcodeproj",
+        "containerPath" : "container:AgentUsage.xcodeproj",
         "identifier" : "8BC265732DEDD3F500F279A4",
-        "name" : "ClaudeUsageWidgetUITests"
+        "name" : "AgentUsageUITests"
       }
     },
     {
       "target" : {
-        "containerPath" : "container:ClaudeUsageWidgetPackage",
+        "containerPath" : "container:AgentUsagePackage",
         "identifier" : "SharedTests",
         "name" : "SharedTests"
       }

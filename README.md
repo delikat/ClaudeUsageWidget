@@ -1,6 +1,6 @@
-# Claude Usage Widget
+# AgentUsage
 
-[![CI](https://github.com/delikat/ClaudeUsageWidget/actions/workflows/ci.yml/badge.svg)](https://github.com/delikat/ClaudeUsageWidget/actions/workflows/ci.yml)
+[![CI](https://github.com/delikat/AgentUsage/actions/workflows/ci.yml/badge.svg)](https://github.com/delikat/AgentUsage/actions/workflows/ci.yml)
 
 Track Claude usage directly on your macOS desktop with native widgets.
 
@@ -29,15 +29,15 @@ Track Claude usage directly on your macOS desktop with native widgets.
 4. Optional: run Codex CLI to generate logs for Codex widgets.
 
 ## Development
-- Open the workspace in Xcode: `ClaudeUsageWidget.xcworkspace`
-- Build with Xcode or use `xcodebuild -workspace ClaudeUsageWidget.xcworkspace -scheme ClaudeUsageWidget build`
-- Unit tests live in `ClaudeUsageWidgetPackage/Tests/SharedTests/`
-- If you fork, update the bundle ID and App Group to your own Team ID in `Config/Shared.xcconfig`, `Config/ClaudeUsageWidget.entitlements`, and `ClaudeUsageWidgetPackage/Sources/Shared/AppGroup.swift`.
+- Open the workspace in Xcode: `AgentUsage.xcworkspace`
+- Build with Xcode or use `xcodebuild -workspace AgentUsage.xcworkspace -scheme AgentUsage build`
+- Unit tests live in `AgentUsagePackage/Tests/SharedTests/`
+- If you fork, update the bundle ID and App Group to your own Team ID in `Config/Shared.xcconfig`, `Config/AgentUsage.entitlements`, and `AgentUsagePackage/Sources/Shared/AppGroup.swift`.
 
 ## Development Notes
 
 ### Code Organization
-Most development happens in `ClaudeUsageWidgetPackage/Sources/Shared/` - organize your code as you prefer.
+Most development happens in `AgentUsagePackage/Sources/Shared/` - organize your code as you prefer.
 
 ### Public API Requirements
 Types exposed to the app target need `public` access:
@@ -52,7 +52,7 @@ public struct SettingsView: View {
 ```
 
 ### Adding Dependencies
-Edit `ClaudeUsageWidgetPackage/Package.swift` to add SPM dependencies:
+Edit `AgentUsagePackage/Package.swift` to add SPM dependencies:
 ```swift
 dependencies: [
     .package(url: "https://github.com/example/SomePackage", from: "1.0.0")
@@ -66,18 +66,18 @@ targets: [
 ```
 
 ### Test Structure
-- **Unit Tests**: `ClaudeUsageWidgetPackage/Tests/SharedTests/` (Swift Testing framework)
-- **UI Tests**: `ClaudeUsageWidgetUITests/` (XCUITest framework)
-- **Test Plan**: `ClaudeUsageWidget.xctestplan` coordinates all tests
+- **Unit Tests**: `AgentUsagePackage/Tests/SharedTests/` (Swift Testing framework)
+- **UI Tests**: `AgentUsageUITests/` (XCUITest framework)
+- **Test Plan**: `AgentUsage.xctestplan` coordinates all tests
 
 ### Widget Snapshots (CLI/CI)
 Generate widget PNGs from the command line (no WidgetKit Simulator needed):
 ```bash
-xcodebuild -workspace ClaudeUsageWidget.xcworkspace -scheme WidgetSnapshotTests test
+xcodebuild -workspace AgentUsage.xcworkspace -scheme WidgetSnapshotTests test
 ```
 Snapshots are written to `.context/widget-snapshots` by default. Override the output directory:
 ```bash
-WIDGET_SNAPSHOT_DIR=docs/screenshots xcodebuild -workspace ClaudeUsageWidget.xcworkspace -scheme WidgetSnapshotTests test
+WIDGET_SNAPSHOT_DIR=docs/screenshots xcodebuild -workspace AgentUsage.xcworkspace -scheme WidgetSnapshotTests test
 ```
 Dark mode variants are saved with a `-dark` suffix (for example `claude-small-dark.png`).
 
@@ -91,7 +91,7 @@ Build settings are managed through **XCConfig files** in `Config/`:
 - `Config/Tests.xcconfig` - Test-specific settings
 
 ### App Sandbox & Entitlements
-The app is sandboxed by default with basic file access. Edit `ClaudeUsageWidget/ClaudeUsageWidget.entitlements` to add capabilities:
+The app is sandboxed by default with basic file access. Edit `Config/AgentUsage.entitlements` to add capabilities:
 ```xml
 <key>com.apple.security.files.user-selected.read-write</key>
 <true/>
@@ -106,7 +106,7 @@ The app is sandboxed by default with basic file access. Edit `ClaudeUsageWidget/
 Add multiple windows and settings panels:
 ```swift
 @main
-struct ClaudeUsageWidgetApp: App {
+struct AgentUsageApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
@@ -120,7 +120,7 @@ struct ClaudeUsageWidgetApp: App {
 ```
 
 ### Asset Management
-- **App-Level Assets**: `ClaudeUsageWidget/Assets.xcassets/` (app icon with multiple sizes, accent color)
+- **App-Level Assets**: `AgentUsage/Assets.xcassets/` (app icon with multiple sizes, accent color)
 - **Feature Assets**: Add `Resources/` folder to SPM package if needed
 
 ### SPM Package Resources

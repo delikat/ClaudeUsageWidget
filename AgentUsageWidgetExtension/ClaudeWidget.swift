@@ -581,7 +581,7 @@ struct GaugeWidgetEntryView: View {
 
 // MARK: - Widget Entry View
 
-struct ClaudeUsageWidgetEntryView: View {
+struct ClaudeWidgetEntryView: View {
     @Environment(\.widgetFamily) var family
     let entry: UsageEntry
 
@@ -601,12 +601,12 @@ struct ClaudeUsageWidgetEntryView: View {
 
 // MARK: - Widget Configuration
 
-struct ClaudeUsageWidget: Widget {
-    let kind: String = "ClaudeUsageWidget"
+struct ClaudeWidget: Widget {
+    let kind: String = "ClaudeWidget"
 
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: Provider()) { entry in
-            ClaudeUsageWidgetEntryView(entry: entry)
+            ClaudeWidgetEntryView(entry: entry)
                 .containerBackground(.fill.tertiary, for: .widget)
         }
         .configurationDisplayName("Claude Usage")
@@ -617,8 +617,8 @@ struct ClaudeUsageWidget: Widget {
 
 // MARK: - Gauge Widget Configuration
 
-struct ClaudeUsageGaugeWidget: Widget {
-    let kind: String = "ClaudeUsageGaugeWidget"
+struct ClaudeGaugeWidget: Widget {
+    let kind: String = "ClaudeGaugeWidget"
 
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: Provider()) { entry in
@@ -656,10 +656,10 @@ struct MonthlyRefreshButton: View {
 // MARK: - Widget Bundle
 
 @main
-struct ClaudeUsageWidgetBundle: WidgetBundle {
+struct ClaudeWidgetBundle: WidgetBundle {
     var body: some Widget {
-        ClaudeUsageWidget()
-        ClaudeUsageGaugeWidget()
+        ClaudeWidget()
+        ClaudeGaugeWidget()
         UsageHeatmapWidget()
     }
 }
@@ -667,37 +667,37 @@ struct ClaudeUsageWidgetBundle: WidgetBundle {
 // MARK: - Previews
 
 #Preview("Small", as: .systemSmall) {
-    ClaudeUsageWidget()
+    ClaudeWidget()
 } timeline: {
     UsageEntry(date: Date(), usage: .placeholder, monthly: .placeholder)
 }
 
 #Preview("Medium", as: .systemMedium) {
-    ClaudeUsageWidget()
+    ClaudeWidget()
 } timeline: {
     UsageEntry(date: Date(), usage: .placeholder, monthly: .placeholder)
 }
 
 #Preview("Error State", as: .systemSmall) {
-    ClaudeUsageWidget()
+    ClaudeWidget()
 } timeline: {
     UsageEntry(date: Date(), usage: .noCredentialsError, monthly: .noData)
 }
 
 #Preview("Gauge Small", as: .systemSmall) {
-    ClaudeUsageGaugeWidget()
+    ClaudeGaugeWidget()
 } timeline: {
     UsageEntry(date: Date(), usage: .placeholder, monthly: .placeholder)
 }
 
 #Preview("Gauge Medium", as: .systemMedium) {
-    ClaudeUsageGaugeWidget()
+    ClaudeGaugeWidget()
 } timeline: {
     UsageEntry(date: Date(), usage: .placeholder, monthly: .placeholder)
 }
 
 #Preview("Large", as: .systemLarge) {
-    ClaudeUsageWidget()
+    ClaudeWidget()
 } timeline: {
     UsageEntry(date: Date(), usage: .placeholder, monthly: .placeholder)
 }

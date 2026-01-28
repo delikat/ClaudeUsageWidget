@@ -10,33 +10,33 @@ A macOS widget application that monitors Claude API usage limits. Displays 5-hou
 
 ```bash
 # Open workspace in Xcode (always use workspace, not project)
-open ClaudeUsageWidget.xcworkspace
+open AgentUsage.xcworkspace
 
 # Build main app
-xcodebuild -workspace ClaudeUsageWidget.xcworkspace -scheme ClaudeUsageWidget build
+xcodebuild -workspace AgentUsage.xcworkspace -scheme AgentUsage build
 
 # Build widget extension
-xcodebuild -workspace ClaudeUsageWidget.xcworkspace -scheme ClaudeUsageWidgetExtension build
+xcodebuild -workspace AgentUsage.xcworkspace -scheme AgentUsageWidgetExtension build
 
 # Generate widget snapshots (light + dark)
-xcodebuild -workspace ClaudeUsageWidget.xcworkspace -scheme WidgetSnapshotTests test
+xcodebuild -workspace AgentUsage.xcworkspace -scheme WidgetSnapshotTests test
 
 # Optional: override output directory
-WIDGET_SNAPSHOT_DIR=docs/screenshots xcodebuild -workspace ClaudeUsageWidget.xcworkspace -scheme WidgetSnapshotTests test
+WIDGET_SNAPSHOT_DIR=docs/screenshots xcodebuild -workspace AgentUsage.xcworkspace -scheme WidgetSnapshotTests test
 
 # Run unit tests (Swift Testing framework)
-xcodebuild -workspace ClaudeUsageWidget.xcworkspace -scheme ClaudeUsageWidgetPackage test
+xcodebuild -workspace AgentUsage.xcworkspace -scheme AgentUsagePackage test
 
 # Run UI tests
-xcodebuild -workspace ClaudeUsageWidget.xcworkspace -scheme ClaudeUsageWidgetUITests test
+xcodebuild -workspace AgentUsage.xcworkspace -scheme AgentUsageUITests test
 ```
 
 ## Architecture
 
 ### Workspace + SPM Pattern
-- **ClaudeUsageWidget/** - Main app target (invisible background app via `LSUIElement=YES`)
-- **ClaudeUsageWidgetExtension/** - WidgetKit extension (displays widget UI)
-- **ClaudeUsageWidgetPackage/** - Shared SPM package (primary development area)
+- **AgentUsage/** - Main app target (invisible background app via `LSUIElement=YES`)
+- **AgentUsageWidgetExtension/** - WidgetKit extension (displays widget UI)
+- **AgentUsagePackage/** - Shared SPM package (primary development area)
 - **Config/** - XCConfig files for build settings
 
 ### Data Flow
@@ -47,8 +47,8 @@ xcodebuild -workspace ClaudeUsageWidget.xcworkspace -scheme ClaudeUsageWidgetUIT
 5. Widget refresh button sends distributed notification to main app
 
 ### Inter-Process Communication
-- **App Group**: `HN6S8N7886.group.com.delikat.claudewidget`
-- **Distributed Notification**: `com.delikat.claudewidget.refresh`
+- **App Group**: `HN6S8N7886.group.com.delikat.agentusage`
+- **Distributed Notification**: `com.delikat.agentusage.refresh`
 
 ### Key Types
 - `CachedUsage` - Stored usage data with timestamps and error state
@@ -61,9 +61,9 @@ xcodebuild -workspace ClaudeUsageWidget.xcworkspace -scheme ClaudeUsageWidgetUIT
 - **Snapshotting widgets:** Run the `WidgetSnapshotTests` scheme to render all widget variants to PNGs (light + dark). Defaults to `.context/widget-snapshots` with `-dark` filename suffix for dark mode. You can override the output directory via `WIDGET_SNAPSHOT_DIR`.
 - **Updating widgets during development:** After building, run these commands to see changes immediately in WidgetKit Simulator (no restart needed):
   ```bash
-  killall ClaudeUsageWidgetExtension CodexUsageWidgetExtension 2>/dev/null
+  killall AgentUsageWidgetExtension CodexUsageWidgetExtension 2>/dev/null
   ```
-- Most development happens in `ClaudeUsageWidgetPackage/Sources/Shared/`
+- Most development happens in `AgentUsagePackage/Sources/Shared/`
 - Types exposed to app targets require `public` access modifier
 - Widget supports Small (1x1) and Medium (2x1) families
 - Uses Swift 6.1 with macOS 14+ deployment target

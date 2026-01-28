@@ -1,30 +1,34 @@
-# ClaudeUsageWidget - macOS App
+# AgentUsage - macOS App
 
 A modern macOS application using a workspace + SPM package architecture for clean separation between app shell and feature code.
 
 ## Project Architecture
 
 ```
-ClaudeUsageWidget/
-├── ClaudeUsageWidget.xcworkspace/              # Open this file in Xcode
-├── ClaudeUsageWidget.xcodeproj/                # App shell project
-├── ClaudeUsageWidget/                          # App target (minimal)
-│   ├── Assets.xcassets/                        # App-level assets (icons, colors)
-│   ├── ClaudeUsageWidgetApp.swift              # App entry point
-│   ├── ClaudeUsageWidget.entitlements          # App sandbox settings
-│   └── ClaudeUsageWidget.xctestplan            # Test configuration
-├── ClaudeUsageWidgetPackage/                   # Primary development area
-│   ├── Package.swift                           # Package configuration
-│   ├── Sources/Shared/                         # Your feature code
-│   └── Tests/SharedTests/                      # Unit tests
-└── ClaudeUsageWidgetUITests/                   # UI automation tests
+AgentUsage/
+├── AgentUsage.xcworkspace/              # Open this file in Xcode
+├── AgentUsage.xcodeproj/                # App shell project
+├── AgentUsage/                          # App target (minimal)
+│   ├── Assets.xcassets/                 # App-level assets (icons, colors)
+│   ├── AgentUsageApp.swift              # App entry point
+│   └── AgentUsage.xctestplan            # Test configuration
+├── AgentUsagePackage/                   # Primary development area
+│   ├── Package.swift                    # Package configuration
+│   ├── Sources/Shared/                  # Your feature code
+│   └── Tests/SharedTests/               # Unit tests
+├── AgentUsageUITests/                   # UI automation tests
+├── AgentUsageWidgetExtension/           # Claude widget extension
+├── CodexUsageWidgetExtension/           # Codex widget extension
+├── Config/                              # Build settings + entitlements
+│   └── AgentUsage.entitlements          # App sandbox settings
+└── WidgetSnapshotTests/                 # Snapshot test target
 ```
 
 ## Key Architecture Points
 
 ### Workspace + SPM Structure
-- App Shell: `ClaudeUsageWidget/` contains minimal app lifecycle code
-- Feature Code: `ClaudeUsageWidgetPackage/Sources/Shared/` is where most development happens
+- App Shell: `AgentUsage/` contains minimal app lifecycle code
+- Feature Code: `AgentUsagePackage/Sources/Shared/` is where most development happens
 - Separation: Business logic lives in the SPM package, app target just imports and displays it
 
 ### Buildable Folders (Xcode 16)
@@ -38,7 +42,7 @@ The app is currently configured without App Sandbox (no `com.apple.security.app-
 ## Development Notes
 
 ### Code Organization
-Most development happens in `ClaudeUsageWidgetPackage/Sources/Shared/` - organize your code as you prefer.
+Most development happens in `AgentUsagePackage/Sources/Shared/` - organize your code as you prefer.
 
 ### Public API Requirements
 Types exposed to the app target need `public` access:
@@ -53,7 +57,7 @@ public struct SettingsView: View {
 ```
 
 ### Adding Dependencies
-Edit `ClaudeUsageWidgetPackage/Package.swift` to add SPM dependencies:
+Edit `AgentUsagePackage/Package.swift` to add SPM dependencies:
 ```swift
 dependencies: [
     .package(url: "https://github.com/example/SomePackage", from: "1.0.0")
@@ -67,9 +71,9 @@ targets: [
 ```
 
 ### Test Structure
-- Unit Tests: `ClaudeUsageWidgetPackage/Tests/SharedTests/` (Swift Testing framework)
-- UI Tests: `ClaudeUsageWidgetUITests/` (XCUITest framework)
-- Test Plan: `ClaudeUsageWidget.xctestplan` coordinates all tests
+- Unit Tests: `AgentUsagePackage/Tests/SharedTests/` (Swift Testing framework)
+- UI Tests: `AgentUsageUITests/` (XCUITest framework)
+- Test Plan: `AgentUsage.xctestplan` coordinates all tests
 
 ## Configuration
 
@@ -81,9 +85,9 @@ Build settings are managed through XCConfig files in `Config/`:
 - `Config/Tests.xcconfig` - Test-specific settings
 
 ### App Sandbox & Entitlements
-The app uses an App Group entitlement for widget data sharing. If you fork, update the App Group ID in `Config/ClaudeUsageWidget.entitlements` and `ClaudeUsageWidgetPackage/Sources/Shared/AppGroup.swift` to match your own Team ID. App Groups require a properly signed build (set `DEVELOPMENT_TEAM` in `Config/Shared.xcconfig`).
+The app uses an App Group entitlement for widget data sharing. If you fork, update the App Group ID in `Config/AgentUsage.entitlements` and `AgentUsagePackage/Sources/Shared/AppGroup.swift` to match your own Team ID. App Groups require a properly signed build (set `DEVELOPMENT_TEAM` in `Config/Shared.xcconfig`).
 
-If you choose to sandbox the app, add capabilities in `Config/ClaudeUsageWidget.entitlements` such as:
+If you choose to sandbox the app, add capabilities in `Config/AgentUsage.entitlements` such as:
 ```xml
 <key>com.apple.security.files.user-selected.read-write</key>
 <true/>
@@ -98,7 +102,7 @@ If you choose to sandbox the app, add capabilities in `Config/ClaudeUsageWidget.
 Add multiple windows and settings panels:
 ```swift
 @main
-struct ClaudeUsageWidgetApp: App {
+struct AgentUsageApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
@@ -112,7 +116,7 @@ struct ClaudeUsageWidgetApp: App {
 ```
 
 ### Asset Management
-- App-Level Assets: `ClaudeUsageWidget/Assets.xcassets/` (app icon with multiple sizes, accent color)
+- App-Level Assets: `AgentUsage/Assets.xcassets/` (app icon with multiple sizes, accent color)
 - Feature Assets: Add `Resources/` folder to SPM package if needed
 
 ### SPM Package Resources

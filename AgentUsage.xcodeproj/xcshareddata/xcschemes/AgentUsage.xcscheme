@@ -16,9 +16,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "8BC2655B2DEDD3F400F279A4"
-               BuildableName = "ClaudeUsageWidget.app"
-               BlueprintName = "ClaudeUsageWidget"
-               ReferencedContainer = "container:ClaudeUsageWidget.xcodeproj">
+               BuildableName = "AgentUsage.app"
+               BlueprintName = "AgentUsage"
+               ReferencedContainer = "container:AgentUsage.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -30,7 +30,7 @@
       shouldUseLaunchSchemeArgsEnv = "YES">
       <TestPlans>
          <TestPlanReference
-            reference = "container:ClaudeUsageWidget/ClaudeUsageWidget.xctestplan"
+            reference = "container:AgentUsage/AgentUsage.xctestplan"
             default = "YES">
          </TestPlanReference>
       </TestPlans>
@@ -41,9 +41,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "8BC265732DEDD3F500F279A4"
-               BuildableName = "ClaudeUsageWidget.xctest"
-               BlueprintName = "ClaudeUsageWidgetUITests"
-               ReferencedContainer = "container:ClaudeUsageWidget.xcodeproj">
+               BuildableName = "AgentUsageUITests.xctest"
+               BlueprintName = "AgentUsageUITests"
+               ReferencedContainer = "container:AgentUsage.xcodeproj">
             </BuildableReference>
          </TestableReference>
       </Testables>
@@ -63,9 +63,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "8BC2655B2DEDD3F400F279A4"
-            BuildableName = "ClaudeUsageWidget.app"
-            BlueprintName = "ClaudeUsageWidget"
-            ReferencedContainer = "container:ClaudeUsageWidget.xcodeproj">
+            BuildableName = "AgentUsage.app"
+            BlueprintName = "AgentUsage"
+            ReferencedContainer = "container:AgentUsage.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -80,9 +80,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "8BC2655B2DEDD3F400F279A4"
-            BuildableName = "ClaudeUsageWidget.app"
-            BlueprintName = "ClaudeUsageWidget"
-            ReferencedContainer = "container:ClaudeUsageWidget.xcodeproj">
+            BuildableName = "AgentUsage.app"
+            BlueprintName = "AgentUsage"
+            ReferencedContainer = "container:AgentUsage.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>
