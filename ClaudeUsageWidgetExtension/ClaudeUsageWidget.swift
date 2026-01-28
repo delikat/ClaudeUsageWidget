@@ -31,12 +31,28 @@ private func formattedCost(_ value: Double) -> String {
 }
 
 private func formattedTokens(_ value: Int) -> String {
+    guard value >= 1_000 else { return "\(value)" }
+    let divisor: Double
+    let suffix: String
     if value >= 1_000_000 {
-        return String(format: "%.1fm", Double(value) / 1_000_000)
-    } else if value >= 1_000 {
-        return String(format: "%.0fk", Double(value) / 1_000)
+        divisor = 1_000_000
+        suffix = "m"
+    } else {
+        divisor = 1_000
+        suffix = "k"
     }
-    return "\(value)"
+    let scaled = Double(value) / divisor
+    let formatter = NumberFormatter()
+    formatter.numberStyle = .decimal
+    formatter.minimumFractionDigits = 0
+    formatter.maximumFractionDigits = 1
+    formatter.roundingMode = .down
+    let formatted = formatter.string(from: NSNumber(value: scaled)) ?? String(format: "%.1f", scaled)
+    return "\(formatted)\(suffix)"
+}
+
+private func resetRelativeText(_ date: Date) -> Text {
+    Text("Resets ") + Text(date, format: .relative(presentation: .numeric, unitsStyle: .abbreviated))
 }
 
 private func monthTitle(for identifier: String) -> String {
@@ -154,7 +170,7 @@ struct SmallWidgetView: View {
                     RefreshButton()
                     Spacer()
                     if let resetAt = entry.usage.fiveHourResetAt {
-                        Text("Resets in \(ShortRelativeTimeFormatter.format(until: resetAt))")
+                        resetRelativeText(resetAt)
                             .font(.system(size: 9, weight: .medium))
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
@@ -236,7 +252,7 @@ struct UsageCard: View {
                 }
                 Spacer()
                 if let resetAt = resetAt {
-                    Text("Resets in \(ShortRelativeTimeFormatter.format(until: resetAt))")
+                    resetRelativeText(resetAt)
                         .font(.system(size: 9, weight: .medium))
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
@@ -540,7 +556,7 @@ struct SmallGaugeWidgetView: View {
                 .frame(height: 72)
 
                 if let resetAt = entry.usage.fiveHourResetAt {
-                    Text("Resets in \(ShortRelativeTimeFormatter.format(until: resetAt))")
+                    resetRelativeText(resetAt)
                         .font(.system(size: 9, weight: .medium))
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
@@ -621,7 +637,7 @@ struct GaugeCard: View {
             .frame(height: 72)
 
             if let resetAt = resetAt {
-                Text("Resets in \(ShortRelativeTimeFormatter.format(until: resetAt))")
+                resetRelativeText(resetAt)
                     .font(.system(size: 9, weight: .medium))
                     .foregroundStyle(.secondary)
                     .lineLimit(1)

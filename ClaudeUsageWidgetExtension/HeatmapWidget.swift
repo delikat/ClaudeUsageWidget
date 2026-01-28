@@ -281,12 +281,24 @@ struct HeatmapStats: View {
     }
 
     private func formatTokens(_ tokens: Int) -> String {
+        guard tokens >= 1_000 else { return "\(tokens)" }
+        let divisor: Double
+        let suffix: String
         if tokens >= 1_000_000 {
-            return String(format: "%.1fm", Double(tokens) / 1_000_000)
-        } else if tokens >= 1_000 {
-            return String(format: "%.0fk", Double(tokens) / 1_000)
+            divisor = 1_000_000
+            suffix = "m"
+        } else {
+            divisor = 1_000
+            suffix = "k"
         }
-        return "\(tokens)"
+        let scaled = Double(tokens) / divisor
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.minimumFractionDigits = 0
+        formatter.maximumFractionDigits = 1
+        formatter.roundingMode = .down
+        let formatted = formatter.string(from: NSNumber(value: scaled)) ?? String(format: "%.1f", scaled)
+        return "\(formatted)\(suffix)"
     }
 
     var body: some View {
