@@ -25,6 +25,16 @@ private func formattedCost(_ value: Double) -> String {
     formatter.currencyCode = "USD"
     formatter.maximumFractionDigits = 2
     formatter.minimumFractionDigits = 2
+    formatter.positiveFormat = formatter.positiveFormat.replacingOccurrences(
+        of: "\\s*¤\\s*",
+        with: "¤",
+        options: .regularExpression
+    )
+    formatter.negativeFormat = formatter.negativeFormat.replacingOccurrences(
+        of: "\\s*¤\\s*",
+        with: "¤",
+        options: .regularExpression
+    )
     return formatter.string(from: NSNumber(value: value)) ?? "$0.00"
 }
 
