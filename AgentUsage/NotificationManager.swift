@@ -10,7 +10,7 @@ enum NotificationProvider: String {
     var displayName: String {
         switch self {
         case .claude: return "Claude"
-        case .codex: return "ChatGPT"
+        case .codex: return "Codex"
         }
     }
 }

@@ -440,13 +440,13 @@ struct CodexErrorView: View {
         case .networkError:
             return "Check connection"
         case .invalidToken:
-            return "Run `chatgpt auth`"
+            return "Run `codex auth`"
         case .apiError:
             return "Try again later"
         case .invalidCredentialsFormat:
-            return "Re-authenticate ChatGPT"
+            return "Re-authenticate Codex"
         default:
-            return "Install ChatGPT CLI"
+            return "Install Codex CLI"
         }
     }
 
@@ -692,8 +692,8 @@ struct CodexUsageWidget: Widget {
             CodexUsageWidgetEntryView(entry: entry)
                 .containerBackground(.fill.tertiary, for: .widget)
         }
-        .configurationDisplayName("ChatGPT Usage")
-        .description("Monitor your ChatGPT usage limits")
+        .configurationDisplayName("Codex Usage")
+        .description("Monitor your Codex usage limits")
         .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
     }
 }
@@ -708,8 +708,8 @@ struct CodexUsageGaugeWidget: Widget {
             CodexGaugeWidgetEntryView(entry: entry)
                 .containerBackground(.fill.tertiary, for: .widget)
         }
-        .configurationDisplayName("ChatGPT Usage (Gauge)")
-        .description("Circular gauge showing ChatGPT usage")
+        .configurationDisplayName("Codex Usage (Gauge)")
+        .description("Circular gauge showing Codex usage")
         .supportedFamilies([.systemSmall, .systemMedium])
     }
 }

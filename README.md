@@ -8,21 +8,27 @@ Track Claude usage directly on your macOS desktop with native widgets.
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/widget-snapshots/claude-medium-dark.png">
     <source media="(prefers-color-scheme: light)" srcset="docs/widget-snapshots/claude-medium.png">
-    <img alt="Claude Usage Widget" src="docs/widget-snapshots/claude-medium.png" width="340">
+    <img alt="Usage Bars" src="docs/widget-snapshots/claude-medium.png" width="340">
   </picture>
   &nbsp;&nbsp;
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/widget-snapshots/claude-gauge-medium-dark.png">
     <source media="(prefers-color-scheme: light)" srcset="docs/widget-snapshots/claude-gauge-medium.png">
-    <img alt="Claude Gauge Widget" src="docs/widget-snapshots/claude-gauge-medium.png" width="340">
+    <img alt="Usage Gauges" src="docs/widget-snapshots/claude-gauge-medium.png" width="340">
   </picture>
 </p>
 
 <p align="center">
   <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/widget-snapshots/claude-large-dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="docs/widget-snapshots/claude-large.png">
+    <img alt="Monthly Cost" src="docs/widget-snapshots/claude-large.png" width="260">
+  </picture>
+  &nbsp;&nbsp;
+  <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/widget-snapshots/claude-heatmap-large-dark.png">
     <source media="(prefers-color-scheme: light)" srcset="docs/widget-snapshots/claude-heatmap-large.png">
-    <img alt="Usage Heatmap Widget" src="docs/widget-snapshots/claude-heatmap-large.png" width="340">
+    <img alt="Usage Heatmap" src="docs/widget-snapshots/claude-heatmap-large.png" width="260">
   </picture>
 </p>
 
@@ -42,7 +48,7 @@ Track Claude usage directly on your macOS desktop with native widgets.
 - Uses the existing Claude Code OAuth token from macOS Keychain to query usage.
 - Reads local logs from `~/.claude/projects` (Claude) and `~/.codex/sessions` (Codex).
 - Caches usage in the app's App Group container; **tokens are never stored**.
-- No telemetry; network calls are limited to the Anthropic usage API and (if Codex widgets are enabled) the ChatGPT usage endpoint used by the Codex/ChatGPT CLI (`https://chatgpt.com/backend-api/wham/usage`, which is not a public API and may change).
+- No telemetry; network calls are limited to the Anthropic usage API and (if Codex widgets are enabled) the ChatGPT usage endpoint used by Codex CLI (`https://chatgpt.com/backend-api/wham/usage`, which is not a public API and may change).
 
 ## Getting Started
 1. Install the app (from a release build or by building locally).
