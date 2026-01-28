@@ -9,8 +9,8 @@
 PRODUCT_NAME = ClaudeUsageWidget
 PRODUCT_DISPLAY_NAME = ClaudeUsageWidget
 PRODUCT_BUNDLE_IDENTIFIER = com.delikat.claudewidget
-MARKETING_VERSION = 0.0.1
-CURRENT_PROJECT_VERSION = 1
+MARKETING_VERSION = 0.0.2
+CURRENT_PROJECT_VERSION = 2
 
 // ==========================================
 // Platform Configuration
