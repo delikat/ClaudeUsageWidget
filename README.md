@@ -4,6 +4,28 @@
 
 Track Claude usage directly on your macOS desktop with native widgets.
 
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/widget-snapshots/claude-medium-dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="docs/widget-snapshots/claude-medium.png">
+    <img alt="Claude Usage Widget" src="docs/widget-snapshots/claude-medium.png" width="340">
+  </picture>
+  &nbsp;&nbsp;
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/widget-snapshots/claude-gauge-medium-dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="docs/widget-snapshots/claude-gauge-medium.png">
+    <img alt="Claude Gauge Widget" src="docs/widget-snapshots/claude-gauge-medium.png" width="340">
+  </picture>
+</p>
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/widget-snapshots/claude-heatmap-large-dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="docs/widget-snapshots/claude-heatmap-large.png">
+    <img alt="Usage Heatmap Widget" src="docs/widget-snapshots/claude-heatmap-large.png" width="340">
+  </picture>
+</p>
+
 ## Features
 - 5-hour and 7-day usage widgets for Claude and ChatGPT (Codex)
 - Monthly usage breakdowns and cost estimates
