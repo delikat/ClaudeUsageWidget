@@ -1,0 +1,169 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to release (e.g. v1.0.0)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-latest
+    env:
+      APP_NAME: ClaudeUsageWidget
+      WORKSPACE: ClaudeUsageWidget.xcworkspace
+      SCHEME: ClaudeUsageWidget
+      CONFIGURATION: Release
+      DERIVED_DATA: ${{ runner.temp }}/DerivedData
+      KEYCHAIN_PATH: ${{ runner.temp }}/build.keychain
+      KEYCHAIN_PASSWORD: ${{ secrets.CERTIFICATE_PASSWORD }}
+      RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ inputs.tag || github.ref }}
+
+      - name: Validate release tag
+        run: |
+          set -euo pipefail
+          if [ -z "$RELEASE_TAG" ]; then
+            echo "RELEASE_TAG is empty."
+            exit 1
+          fi
+
+      - name: Import Developer ID certificate
+        env:
+          DEVELOPER_CERTIFICATE_BASE64: ${{ secrets.DEVELOPER_CERTIFICATE_BASE64 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.CERTIFICATE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [ -z "$DEVELOPER_CERTIFICATE_BASE64" ]; then
+            echo "Missing DEVELOPER_CERTIFICATE_BASE64 secret."
+            exit 1
+          fi
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          CERT_PATH="$RUNNER_TEMP/developer_id.p12"
+          printf '%s' "$DEVELOPER_CERTIFICATE_BASE64" | base64 -D > "$CERT_PATH"
+          security import "$CERT_PATH" -P "$CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security list-keychains -d user -s "$KEYCHAIN_PATH"
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+      - name: Resolve signing identity
+        run: |
+          set -euo pipefail
+          SIGNING_IDENTITY=$(security find-identity -v -p codesigning "$KEYCHAIN_PATH" | awk '/Developer ID Application/ {print $2; exit}')
+          if [ -z "$SIGNING_IDENTITY" ]; then
+            echo "No Developer ID Application identity found."
+            security find-identity -v -p codesigning "$KEYCHAIN_PATH"
+            exit 1
+          fi
+          echo "SIGNING_IDENTITY=$SIGNING_IDENTITY" >> "$GITHUB_ENV"
+
+      - name: Build app
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -workspace "$WORKSPACE" \
+            -scheme "$SCHEME" \
+            -configuration "$CONFIGURATION" \
+            -destination 'generic/platform=macOS' \
+            -derivedDataPath "$DERIVED_DATA" \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Sign app and extensions
+        env:
+          ENTITLEMENTS_APP: Config/ClaudeUsageWidget.entitlements
+          ENTITLEMENTS_CLAUDE: ClaudeUsageWidgetExtension/ClaudeUsageWidgetExtension.entitlements
+          ENTITLEMENTS_CODEX: CodexUsageWidgetExtension/CodexUsageWidgetExtension.entitlements
+        run: |
+          set -euo pipefail
+          APP_PATH="$DERIVED_DATA/Build/Products/Release/$APP_NAME.app"
+          if [ ! -d "$APP_PATH" ]; then
+            echo "App not found at $APP_PATH"
+            exit 1
+          fi
+
+          shopt -s nullglob
+
+          if [ -d "$APP_PATH/Contents/Frameworks" ]; then
+            for framework in "$APP_PATH/Contents/Frameworks/"*.framework; do
+              codesign --force --options runtime --timestamp --sign "$SIGNING_IDENTITY" "$framework"
+            done
+          fi
+
+          for appex in "$APP_PATH/Contents/PlugIns/"*.appex; do
+            case "$(basename "$appex")" in
+              ClaudeUsageWidgetExtension.appex) entitlements="$ENTITLEMENTS_CLAUDE" ;;
+              CodexUsageWidgetExtension.appex) entitlements="$ENTITLEMENTS_CODEX" ;;
+              *) entitlements="" ;;
+            esac
+            if [ -n "$entitlements" ]; then
+              codesign --force --options runtime --timestamp --entitlements "$entitlements" --sign "$SIGNING_IDENTITY" "$appex"
+            else
+              codesign --force --options runtime --timestamp --sign "$SIGNING_IDENTITY" "$appex"
+            fi
+          done
+
+          codesign --force --options runtime --timestamp --entitlements "$ENTITLEMENTS_APP" --sign "$SIGNING_IDENTITY" "$APP_PATH"
+          codesign --verify --deep --strict --verbose=2 "$APP_PATH"
+          spctl -a -vv "$APP_PATH"
+
+      - name: Create notarization zip
+        run: |
+          set -euo pipefail
+          APP_PATH="$DERIVED_DATA/Build/Products/Release/$APP_NAME.app"
+          NOTARIZE_ZIP="$RUNNER_TEMP/${APP_NAME}-${RELEASE_TAG}-notarize.zip"
+          ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" "$NOTARIZE_ZIP"
+          echo "NOTARIZE_ZIP=$NOTARIZE_ZIP" >> "$GITHUB_ENV"
+
+      - name: Notarize app
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
+          TEAM_ID: ${{ secrets.TEAM_ID }}
+        run: |
+          set -euo pipefail
+          xcrun notarytool submit "$NOTARIZE_ZIP" \
+            --apple-id "$APPLE_ID" \
+            --password "$APPLE_ID_PASSWORD" \
+            --team-id "$TEAM_ID" \
+            --wait
+
+      - name: Staple notarization
+        run: |
+          set -euo pipefail
+          APP_PATH="$DERIVED_DATA/Build/Products/Release/$APP_NAME.app"
+          xcrun stapler staple "$APP_PATH"
+
+      - name: Create release artifacts
+        run: |
+          set -euo pipefail
+          APP_PATH="$DERIVED_DATA/Build/Products/Release/$APP_NAME.app"
+          ZIP_PATH="$RUNNER_TEMP/${APP_NAME}-${RELEASE_TAG}.zip"
+          ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" "$ZIP_PATH"
+          shasum -a 256 "$ZIP_PATH" > "$ZIP_PATH.sha256"
+          echo "ZIP_PATH=$ZIP_PATH" >> "$GITHUB_ENV"
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.RELEASE_TAG }}
+          name: ${{ env.APP_NAME }} ${{ env.RELEASE_TAG }}
+          generate_release_notes: true
+          files: |
+            ${{ env.ZIP_PATH }}
+            ${{ env.ZIP_PATH }}.sha256
