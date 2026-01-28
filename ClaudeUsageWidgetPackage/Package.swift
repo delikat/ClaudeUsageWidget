@@ -30,7 +30,8 @@ let package = Package(
                 "Shared",
                 .product(name: "SnapshotTesting", package: "swift-snapshot-testing"),
             ],
-            path: "Tests/SnapshotTests"
+            path: "Tests/SnapshotTests",
+            exclude: ["__Snapshots__", "Screenshots"]
         ),
     ]
 )

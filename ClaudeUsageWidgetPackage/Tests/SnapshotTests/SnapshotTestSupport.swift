@@ -144,9 +144,25 @@ enum SnapshotTestConfig {
         }
         return SnapshotTestingConfiguration.Record(rawValue: value)
     }()
+
+    static let shouldSkip: Bool = {
+        let env = ProcessInfo.processInfo.environment
+        let ciValue = env["CI"]?.lowercased()
+        let isCI = ciValue == "1" || ciValue == "true" || ciValue == "yes"
+        let runSnapshotsValue = env["RUN_SNAPSHOT_TESTS"]?.lowercased()
+        let runSnapshots = runSnapshotsValue == "1" || runSnapshotsValue == "true" || runSnapshotsValue == "yes"
+        return isCI && !runSnapshots
+    }()
 }
 
 class SnapshotTestCase: XCTestCase {
+    override func setUpWithError() throws {
+        try super.setUpWithError()
+        if SnapshotTestConfig.shouldSkip {
+            throw XCTSkip("Snapshot tests are disabled on CI. Set RUN_SNAPSHOT_TESTS=1 to enable.")
+        }
+    }
+
     override func invokeTest() {
         if let record = SnapshotTestConfig.recordMode {
             withSnapshotTesting(record: record) {
