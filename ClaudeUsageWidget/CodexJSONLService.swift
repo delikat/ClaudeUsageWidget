@@ -49,6 +49,7 @@ final class CodexJSONLService: Sendable {
         let allowedMonths: Set<String> = [currentMonth, previousMonth]
 
         var samples: [MonthlyUsageSample] = []
+        var seenRequestIds: Set<String> = []
         var hadReadError = false
 
         let enumerator = FileManager.default.enumerator(
@@ -60,7 +61,11 @@ final class CodexJSONLService: Sendable {
             for case let fileURL as URL in enumerator {
                 guard fileURL.pathExtension == "jsonl" else { continue }
                 do {
-                    let fileSamples = try await parseFile(fileURL: fileURL, allowedMonths: allowedMonths)
+                    let fileSamples = try await parseFile(
+                        fileURL: fileURL,
+                        allowedMonths: allowedMonths,
+                        seenRequestIds: &seenRequestIds
+                    )
                     samples.append(contentsOf: fileSamples)
                 } catch {
                     hadReadError = true
@@ -77,7 +82,11 @@ final class CodexJSONLService: Sendable {
         return CachedMonthlyUsage(months: stats, fetchedAt: Date(), error: hadReadError ? .readError : nil)
     }
 
-    private func parseFile(fileURL: URL, allowedMonths: Set<String>) async throws -> [MonthlyUsageSample] {
+    private func parseFile(
+        fileURL: URL,
+        allowedMonths: Set<String>,
+        seenRequestIds: inout Set<String>
+    ) async throws -> [MonthlyUsageSample] {
         let handle = try FileHandle(forReadingFrom: fileURL)
         defer { try? handle.close() }
 
@@ -86,8 +95,15 @@ final class CodexJSONLService: Sendable {
         for try await line in handle.bytes.lines {
             guard !line.isEmpty, let data = line.data(using: .utf8) else { continue }
             guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { continue }
-            guard let sample = parseSample(from: json, allowedMonths: allowedMonths) else { continue }
-            samples.append(sample)
+
+            let sample = parseSample(from: json, allowedMonths: allowedMonths)
+            let dedupeKey = JSONLDedupe.extractDedupeKey(from: json)
+            guard let accepted = JSONLDedupe.acceptSample(
+                sample,
+                dedupeKey: dedupeKey,
+                seenKeys: &seenRequestIds
+            ) else { continue }
+            samples.append(accepted)
         }
 
         return samples
