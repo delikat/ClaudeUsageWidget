@@ -39,7 +39,7 @@ final class UsageService: Sendable {
     func fetchAndCache() async {
         // Check debouncing
         guard await fetchState.shouldFetch() else {
-            print("UsageService: Skipping fetch due to debounce (within 5 seconds of last fetch)")
+            AppLog.usage.debug("UsageService: Skipping fetch due to debounce (within 5 seconds of last fetch)")
             return
         }
 
@@ -51,7 +51,7 @@ final class UsageService: Sendable {
 
             // Log warning if token appears expired (but still try - Claude Code may have refreshed)
             if isTokenExpired(credentials) {
-                print("UsageService: Token appears expired, will attempt fetch anyway (Claude Code may have refreshed)")
+                AppLog.usage.debug("UsageService: Token appears expired, will attempt fetch anyway (Claude Code may have refreshed)")
             }
 
             let usage = try await fetchUsage(token: credentials.claudeAiOauth.accessToken)
@@ -89,9 +89,9 @@ final class UsageService: Sendable {
             await MainActor.run {
                 WidgetCenter.shared.reloadAllTimelines()
             }
-            print("UsageService: Successfully fetched and cached usage data")
+            AppLog.usage.info("UsageService: Successfully fetched and cached usage data")
         } catch let error as UsageError {
-            print("UsageService: Error: \(error)")
+            AppLog.usage.error("UsageService: Error: \(String(describing: error))")
             let cached = CachedUsage(
                 fiveHourUsage: 0,
                 fiveHourResetAt: nil,
@@ -106,7 +106,7 @@ final class UsageService: Sendable {
                 WidgetCenter.shared.reloadAllTimelines()
             }
         } catch let error as URLError {
-            print("UsageService: Network error: \(error)")
+            AppLog.usage.error("UsageService: Network error: \(error.localizedDescription)")
             let cached = CachedUsage(
                 fiveHourUsage: 0,
                 fiveHourResetAt: nil,
@@ -121,7 +121,7 @@ final class UsageService: Sendable {
                 WidgetCenter.shared.reloadAllTimelines()
             }
         } catch is DecodingError {
-            print("UsageService: Decoding error - invalid credentials format")
+            AppLog.usage.error("UsageService: Decoding error - invalid credentials format")
             let cached = CachedUsage(
                 fiveHourUsage: 0,
                 fiveHourResetAt: nil,
@@ -136,7 +136,7 @@ final class UsageService: Sendable {
                 WidgetCenter.shared.reloadAllTimelines()
             }
         } catch {
-            print("UsageService: Unexpected error: \(error)")
+            AppLog.usage.error("UsageService: Unexpected error: \(error.localizedDescription)")
             // Cache as API error so widget shows something useful
             let cached = CachedUsage(
                 fiveHourUsage: 0,
@@ -217,7 +217,7 @@ final class UsageService: Sendable {
         case 401:
             // On first 401, re-read keychain in case Claude Code refreshed the token
             if retryCount == 0 {
-                print("UsageService: Got 401, re-reading keychain for potentially refreshed token")
+                AppLog.usage.info("UsageService: Got 401, re-reading keychain for potentially refreshed token")
                 let freshCredentials = try await Task.detached(priority: .userInitiated) {
                     try self.extractCredentials()
                 }.value
@@ -225,7 +225,7 @@ final class UsageService: Sendable {
             }
             throw UsageError.invalidToken
         default:
-            print("UsageService: API returned status \(httpResponse.statusCode)")
+            AppLog.usage.error("UsageService: API returned status \(httpResponse.statusCode)")
             throw UsageError.apiError
         }
     }

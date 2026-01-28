@@ -23,36 +23,29 @@ final class HistoryService: Sendable {
         }.value
     }
 
-    /// Force a full rescan regardless of last scan time
-    func forceUpdate() async {
-        await Task.detached(priority: .utility) {
-            self.performUpdate(force: true)
-        }.value
-    }
-
     private func performUpdate(force: Bool = false) {
         // Check if we should scan (throttle to once per hour unless forced)
         if !force {
             let lastScan = UserDefaults.standard.double(forKey: lastScanKey)
             if lastScan > 0 && Date().timeIntervalSince1970 - lastScan < minScanInterval {
-                print("HistoryService: Skipping scan (last scan was \(Int((Date().timeIntervalSince1970 - lastScan) / 60)) minutes ago)")
+                AppLog.history.debug("HistoryService: Skipping scan (last scan was \(Int((Date().timeIntervalSince1970 - lastScan) / 60)) minutes ago)")
                 return
             }
         }
 
-        print("HistoryService: Starting JSONL scan...")
+        AppLog.history.info("HistoryService: Starting JSONL scan")
 
         // Parse Claude and Codex logs
         let claudeEntries = JSONLParser.parseClaudeLogs()
         let codexEntries = JSONLParser.parseCodexLogs()
 
-        print("HistoryService: Found \(claudeEntries.count) Claude entries and \(codexEntries.count) Codex entries")
+        AppLog.history.debug("HistoryService: Found \(claudeEntries.count) Claude entries and \(codexEntries.count) Codex entries")
 
         // Combine and aggregate
         let allEntries = claudeEntries + codexEntries
         let aggregated = UsageAggregator.aggregate(entries: allEntries)
 
-        print("HistoryService: Aggregated into \(aggregated.count) daily entries")
+        AppLog.history.debug("HistoryService: Aggregated into \(aggregated.count) daily entries")
 
         // Merge with existing history
         let existingHistory = UsageHistoryManager.shared.read() ?? UsageHistory()
@@ -61,7 +54,7 @@ final class HistoryService: Sendable {
         // Write updated history
         do {
             try UsageHistoryManager.shared.write(merged)
-            print("HistoryService: Successfully wrote history with \(merged.entries.count) entries")
+            AppLog.history.info("HistoryService: Successfully wrote history with \(merged.entries.count) entries")
 
             // Update last scan time
             UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: lastScanKey)
@@ -71,7 +64,7 @@ final class HistoryService: Sendable {
                 WidgetCenter.shared.reloadAllTimelines()
             }
         } catch {
-            print("HistoryService: Failed to write history: \(error)")
+            AppLog.history.error("HistoryService: Failed to write history: \(error.localizedDescription)")
         }
     }
 }

@@ -65,7 +65,7 @@ public final class LaunchAgentManager: Sendable {
         )
         try plistData.write(to: plistPath)
 
-        print("LaunchAgentManager: Installed LaunchAgent at \(plistPath.path)")
+        AppLog.launchAgent.info("Installed LaunchAgent at \(plistPath.path)")
     }
 
     /// Remove the LaunchAgent plist
@@ -76,7 +76,7 @@ public final class LaunchAgentManager: Sendable {
 
         if FileManager.default.fileExists(atPath: plistPath.path) {
             try FileManager.default.removeItem(at: plistPath)
-            print("LaunchAgentManager: Removed LaunchAgent from \(plistPath.path)")
+            AppLog.launchAgent.info("Removed LaunchAgent from \(plistPath.path)")
         }
     }
 

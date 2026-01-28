@@ -39,7 +39,7 @@ final class CodexUsageService: Sendable {
     func fetchAndCache() async {
         // Check debouncing
         guard await fetchState.shouldFetch() else {
-            print("CodexUsageService: Skipping fetch due to debounce (within 5 seconds of last fetch)")
+            AppLog.usage.debug("CodexUsageService: Skipping fetch due to debounce (within 5 seconds of last fetch)")
             return
         }
 
@@ -88,9 +88,9 @@ final class CodexUsageService: Sendable {
             await MainActor.run {
                 WidgetCenter.shared.reloadAllTimelines()
             }
-            print("CodexUsageService: Successfully fetched and cached usage data")
+            AppLog.usage.info("CodexUsageService: Successfully fetched and cached usage data")
         } catch let error as CodexUsageError {
-            print("CodexUsageService: Error: \(error)")
+            AppLog.usage.error("CodexUsageService: Error: \(String(describing: error))")
             let cached = CachedUsage(
                 fiveHourUsage: 0,
                 fiveHourResetAt: nil,
@@ -105,7 +105,7 @@ final class CodexUsageService: Sendable {
                 WidgetCenter.shared.reloadAllTimelines()
             }
         } catch let error as CodexCredentialsError {
-            print("CodexUsageService: Credentials error: \(error)")
+            AppLog.usage.error("CodexUsageService: Credentials error: \(String(describing: error))")
             let cached = CachedUsage(
                 fiveHourUsage: 0,
                 fiveHourResetAt: nil,
@@ -120,7 +120,7 @@ final class CodexUsageService: Sendable {
                 WidgetCenter.shared.reloadAllTimelines()
             }
         } catch let error as URLError {
-            print("CodexUsageService: Network error: \(error)")
+            AppLog.usage.error("CodexUsageService: Network error: \(error.localizedDescription)")
             let cached = CachedUsage(
                 fiveHourUsage: 0,
                 fiveHourResetAt: nil,
@@ -135,7 +135,7 @@ final class CodexUsageService: Sendable {
                 WidgetCenter.shared.reloadAllTimelines()
             }
         } catch is DecodingError {
-            print("CodexUsageService: Decoding error - invalid API response format")
+            AppLog.usage.error("CodexUsageService: Decoding error - invalid API response format")
             let cached = CachedUsage(
                 fiveHourUsage: 0,
                 fiveHourResetAt: nil,
@@ -150,7 +150,7 @@ final class CodexUsageService: Sendable {
                 WidgetCenter.shared.reloadAllTimelines()
             }
         } catch {
-            print("CodexUsageService: Unexpected error: \(error)")
+            AppLog.usage.error("CodexUsageService: Unexpected error: \(error.localizedDescription)")
             let cached = CachedUsage(
                 fiveHourUsage: 0,
                 fiveHourResetAt: nil,
@@ -188,7 +188,7 @@ final class CodexUsageService: Sendable {
         case 401:
             throw CodexUsageError.invalidToken
         default:
-            print("CodexUsageService: API returned status \(httpResponse.statusCode)")
+            AppLog.usage.error("CodexUsageService: API returned status \(httpResponse.statusCode)")
             throw CodexUsageError.apiError
         }
     }

@@ -26,7 +26,7 @@ final class ClaudeJSONLService: Sendable {
 
     func fetchAndCache() async {
         guard await fetchState.shouldFetch() else {
-            print("ClaudeJSONLService: Skipping fetch due to debounce")
+            AppLog.usage.debug("ClaudeJSONLService: Skipping fetch due to debounce")
             return
         }
 
@@ -38,9 +38,9 @@ final class ClaudeJSONLService: Sendable {
             await MainActor.run {
                 WidgetCenter.shared.reloadAllTimelines()
             }
-            print("ClaudeJSONLService: Successfully cached monthly usage")
+            AppLog.usage.info("ClaudeJSONLService: Successfully cached monthly usage")
         } catch {
-            print("ClaudeJSONLService: Failed to parse monthly usage: \(error)")
+            AppLog.usage.error("ClaudeJSONLService: Failed to parse monthly usage: \(error.localizedDescription)")
             let cached = CachedMonthlyUsage(months: [], fetchedAt: Date(), error: .readError)
             try? MonthlyUsageCacheManager.claude.write(cached)
             await MainActor.run {
@@ -79,7 +79,7 @@ final class ClaudeJSONLService: Sendable {
                     samples.append(contentsOf: fileSamples)
                 } catch {
                     hadReadError = true
-                    print("ClaudeJSONLService: Failed to parse \(fileURL.lastPathComponent): \(error)")
+                    AppLog.usage.error("ClaudeJSONLService: Failed to parse \(fileURL.lastPathComponent): \(error.localizedDescription)")
                 }
             }
         }

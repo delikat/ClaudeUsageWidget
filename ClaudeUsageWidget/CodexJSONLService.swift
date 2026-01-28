@@ -11,7 +11,7 @@ final class CodexJSONLService: Sendable {
 
     func fetchAndCache() async {
         guard await fetchState.shouldFetch() else {
-            print("CodexJSONLService: Skipping fetch due to debounce")
+            AppLog.usage.debug("CodexJSONLService: Skipping fetch due to debounce")
             return
         }
 
@@ -23,9 +23,9 @@ final class CodexJSONLService: Sendable {
             await MainActor.run {
                 WidgetCenter.shared.reloadAllTimelines()
             }
-            print("CodexJSONLService: Successfully cached monthly usage")
+            AppLog.usage.info("CodexJSONLService: Successfully cached monthly usage")
         } catch {
-            print("CodexJSONLService: Failed to parse monthly usage: \(error)")
+            AppLog.usage.error("CodexJSONLService: Failed to parse monthly usage: \(error.localizedDescription)")
             let cached = CachedMonthlyUsage(months: [], fetchedAt: Date(), error: .readError)
             try? MonthlyUsageCacheManager.codex.write(cached)
             await MainActor.run {
@@ -58,7 +58,7 @@ final class CodexJSONLService: Sendable {
                 samples.append(contentsOf: fileSamples)
             } catch {
                 hadReadError = true
-                print("CodexJSONLService: Failed to parse \(fileURL.lastPathComponent): \(error)")
+                AppLog.usage.error("CodexJSONLService: Failed to parse \(fileURL.lastPathComponent): \(error.localizedDescription)")
             }
         }
 

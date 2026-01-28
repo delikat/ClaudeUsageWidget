@@ -22,12 +22,12 @@ public struct JSONLParser {
         let claudeProjectsDir = homeDir.appendingPathComponent(".claude/projects")
 
         guard FileManager.default.fileExists(atPath: claudeProjectsDir.path) else {
-            print("JSONLParser: Claude projects directory not found at \(claudeProjectsDir.path)")
+            AppLog.jsonl.info("JSONLParser: Claude projects directory not found at \(claudeProjectsDir.path)")
             return []
         }
 
         let jsonlFiles = findJSONLFiles(in: claudeProjectsDir)
-        print("JSONLParser: Found \(jsonlFiles.count) Claude JSONL files")
+        AppLog.jsonl.debug("JSONLParser: Found \(jsonlFiles.count) Claude JSONL files")
 
         var entries: [ConversationEntry] = []
         for file in jsonlFiles {
@@ -44,12 +44,12 @@ public struct JSONLParser {
         let codexSessionsDir = homeDir.appendingPathComponent(".codex/sessions")
 
         guard FileManager.default.fileExists(atPath: codexSessionsDir.path) else {
-            print("JSONLParser: Codex sessions directory not found at \(codexSessionsDir.path)")
+            AppLog.jsonl.info("JSONLParser: Codex sessions directory not found at \(codexSessionsDir.path)")
             return []
         }
 
         let jsonlFiles = findJSONLFiles(in: codexSessionsDir)
-        print("JSONLParser: Found \(jsonlFiles.count) Codex JSONL files")
+        AppLog.jsonl.debug("JSONLParser: Found \(jsonlFiles.count) Codex JSONL files")
 
         var entries: [ConversationEntry] = []
         for file in jsonlFiles {
