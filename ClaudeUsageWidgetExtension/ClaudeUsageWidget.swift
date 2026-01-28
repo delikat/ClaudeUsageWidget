@@ -89,32 +89,36 @@ struct SmallWidgetView: View {
         if entry.usage.error != nil {
             ErrorView(error: entry.usage.error)
         } else {
-            VStack(spacing: 6) {
+            VStack(spacing: 8) {
                 HStack {
-                    Text("5 Hour")
-                        .font(.system(size: 13, weight: .semibold))
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("5 Hour")
+                            .font(.system(size: 13, weight: .semibold))
+                        Text(entry.usage.planTitle ?? "Usage Limit")
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
+                    }
                     Spacer()
-                    RefreshButton()
+                    Text("\(Int(entry.usage.fiveHourUsage))%")
+                        .font(.system(size: 16, weight: .bold, design: .monospaced))
+                        .foregroundStyle(dsUsageColor(for: entry.usage.fiveHourUsage))
                 }
 
-                Text(entry.usage.planTitle ?? "Usage Limit")
-                    .font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
-
-                DSCircularRingGauge(
+                DSProgressBar(
                     value: entry.usage.fiveHourUsage,
-                    color: dsUsageColor(for: entry.usage.fiveHourUsage),
-                    lineWidth: 8,
-                    percentageFontSize: 14
+                    color: dsUsageColor(for: entry.usage.fiveHourUsage)
                 )
 
-                if let resetAt = entry.usage.fiveHourResetAt {
-                    (Text("in ") + Text(resetAt, style: .relative))
-                        .font(.system(size: 9, weight: .medium))
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
+                HStack {
+                    RefreshButton()
+                    Spacer()
+                    if let resetAt = entry.usage.fiveHourResetAt {
+                        (Text("Resets in ") + Text(resetAt, style: .relative))
+                            .font(.system(size: 9, weight: .medium))
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
             .dsCardStyle()

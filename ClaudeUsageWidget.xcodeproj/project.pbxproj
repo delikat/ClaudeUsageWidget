@@ -601,6 +601,7 @@
 		AABB00112233445500000006 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
 				CODE_SIGN_ENTITLEMENTS = ClaudeUsageWidgetExtension/ClaudeUsageWidgetExtension.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
@@ -608,7 +609,7 @@
 				DEVELOPMENT_TEAM = HN6S8N7886;
 				ENABLE_TESTABILITY = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = ClaudeUsageWidgetExtension/Info.plist;
+				INFOPLIST_FILE = Config/ClaudeUsageWidgetExtension-Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Claude Usage";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -630,13 +631,14 @@
 		AABB00112233445500000007 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
 				CODE_SIGN_ENTITLEMENTS = ClaudeUsageWidgetExtension/ClaudeUsageWidgetExtension.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = HN6S8N7886;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = ClaudeUsageWidgetExtension/Info.plist;
+				INFOPLIST_FILE = Config/ClaudeUsageWidgetExtension-Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Claude Usage";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -657,6 +659,7 @@
 		CCDD00112233445500000006 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
 				CODE_SIGN_ENTITLEMENTS = CodexUsageWidgetExtension/CodexUsageWidgetExtension.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
@@ -664,7 +667,7 @@
 				DEVELOPMENT_TEAM = HN6S8N7886;
 				ENABLE_TESTABILITY = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = CodexUsageWidgetExtension/Info.plist;
+				INFOPLIST_FILE = Config/CodexUsageWidgetExtension-Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Codex Usage";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -686,13 +689,14 @@
 		CCDD00112233445500000007 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
 				CODE_SIGN_ENTITLEMENTS = CodexUsageWidgetExtension/CodexUsageWidgetExtension.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = HN6S8N7886;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = CodexUsageWidgetExtension/Info.plist;
+				INFOPLIST_FILE = Config/CodexUsageWidgetExtension-Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Codex Usage";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
