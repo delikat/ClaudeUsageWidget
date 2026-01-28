@@ -20,6 +20,19 @@ ClaudeUsageWidget/
 └── ClaudeUsageWidgetUITests/                   # UI automation tests
 ```
 
+## Quick Start
+
+```bash
+# Open workspace in Xcode
+open ClaudeUsageWidget.xcworkspace
+
+# Build
+xcodebuild -workspace ClaudeUsageWidget.xcworkspace -scheme ClaudeUsageWidget build
+
+# Run unit tests
+xcodebuild -workspace ClaudeUsageWidget.xcworkspace -scheme ClaudeUsageWidgetPackage test
+```
+
 ## Key Architecture Points
 
 ### Workspace + SPM Structure
@@ -70,6 +83,17 @@ targets: [
 - Unit Tests: `ClaudeUsageWidgetPackage/Tests/SharedTests/` (Swift Testing framework)
 - UI Tests: `ClaudeUsageWidgetUITests/` (XCUITest framework)
 - Test Plan: `ClaudeUsageWidget.xctestplan` coordinates all tests
+
+### Widget Snapshots
+Generate widget PNGs from the command line (no WidgetKit Simulator needed):
+```bash
+xcodebuild -workspace ClaudeUsageWidget.xcworkspace -scheme WidgetSnapshotTests test
+```
+Snapshots are written to `.context/widget-snapshots` by default. Override the output directory:
+```bash
+WIDGET_SNAPSHOT_DIR=docs/screenshots xcodebuild -workspace ClaudeUsageWidget.xcworkspace -scheme WidgetSnapshotTests test
+```
+Dark mode variants are saved with a `-dark` suffix (e.g., `claude-small-dark.png`).
 
 ## Configuration
 
