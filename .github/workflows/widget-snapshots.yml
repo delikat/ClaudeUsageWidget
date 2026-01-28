@@ -1,0 +1,114 @@
+name: Widget Snapshots
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  snapshots:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+
+      - name: Generate widget snapshots
+        run: |
+          set -o pipefail
+          xcodebuild -workspace ClaudeUsageWidget.xcworkspace \
+            -scheme WidgetSnapshotTests \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            DEVELOPMENT_TEAM="" \
+            test \
+            2>&1 | tail -50
+
+      - name: Upload snapshots artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: widget-snapshots
+          path: .context/widget-snapshots
+          if-no-files-found: warn
+
+      - name: Comment on PR with widget previews
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+
+            const snapshotDir = '.context/widget-snapshots';
+            const files = fs.existsSync(snapshotDir)
+              ? fs.readdirSync(snapshotDir).filter(f => f.endsWith('.png')).sort()
+              : [];
+            const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const claudeFiles = files.filter(f => f.startsWith('claude-'));
+            const codexFiles = files.filter(f => f.startsWith('codex-'));
+            const otherFiles = files.filter(f => !f.startsWith('claude-') && !f.startsWith('codex-'));
+
+            let markdown = `## Widget Snapshots\n\n`;
+            markdown += `Snapshots are uploaded as a workflow artifact (no auto-commit).\n\n`;
+            markdown += `Download: ${runUrl}\n\n`;
+            markdown += `<details>\n<summary>Snapshot files (${files.length} total)</summary>\n\n`;
+            if (files.length === 0) {
+              markdown += `No PNGs found for this run.\n\n`;
+            } else {
+              if (claudeFiles.length > 0) {
+                markdown += `### Claude\n\n`;
+                for (const file of claudeFiles) {
+                  markdown += `- ${file}\n`;
+                }
+                markdown += `\n`;
+              }
+
+              if (codexFiles.length > 0) {
+                markdown += `### Codex\n\n`;
+                for (const file of codexFiles) {
+                  markdown += `- ${file}\n`;
+                }
+                markdown += `\n`;
+              }
+
+              if (otherFiles.length > 0) {
+                markdown += `### Other\n\n`;
+                for (const file of otherFiles) {
+                  markdown += `- ${file}\n`;
+                }
+                markdown += `\n`;
+              }
+            }
+
+            markdown += `</details>`;
+
+            // Find existing comment
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const botComment = comments.find(c =>
+              c.user.type === 'Bot' && c.body.includes('## Widget Snapshots')
+            );
+
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: markdown
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: markdown
+              });
+            }

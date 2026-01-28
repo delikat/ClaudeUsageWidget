@@ -24,6 +24,19 @@ AgentUsage/
 └── WidgetSnapshotTests/                 # Snapshot test target
 ```
 
+## Quick Start
+
+```bash
+# Open workspace in Xcode
+open AgentUsage.xcworkspace
+
+# Build
+xcodebuild -workspace AgentUsage.xcworkspace -scheme AgentUsage build
+
+# Run unit tests
+xcodebuild -workspace AgentUsage.xcworkspace -scheme AgentUsagePackage test
+```
+
 ## Key Architecture Points
 
 ### Workspace + SPM Structure
@@ -74,6 +87,17 @@ targets: [
 - Unit Tests: `AgentUsagePackage/Tests/SharedTests/` (Swift Testing framework)
 - UI Tests: `AgentUsageUITests/` (XCUITest framework)
 - Test Plan: `AgentUsage.xctestplan` coordinates all tests
+
+### Widget Snapshots
+Generate widget PNGs from the command line (no WidgetKit Simulator needed):
+```bash
+xcodebuild -workspace AgentUsage.xcworkspace -scheme WidgetSnapshotTests test
+```
+Snapshots are written to `.context/widget-snapshots` by default. Override the output directory:
+```bash
+WIDGET_SNAPSHOT_DIR=docs/screenshots xcodebuild -workspace AgentUsage.xcworkspace -scheme WidgetSnapshotTests test
+```
+Dark mode variants are saved with a `-dark` suffix (e.g., `claude-small-dark.png`).
 
 ## Configuration
 
