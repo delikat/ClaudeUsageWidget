@@ -64,6 +64,7 @@ final class ClaudeJSONLService: Sendable {
         let allowedMonths: Set<String> = [currentMonth, previousMonth]
 
         var samples: [MonthlyUsageSample] = []
+        var seenRequestIds: Set<String> = []
         var hadReadError = false
 
         let enumerator = FileManager.default.enumerator(
@@ -75,7 +76,11 @@ final class ClaudeJSONLService: Sendable {
             for case let fileURL as URL in enumerator {
                 guard fileURL.pathExtension == "jsonl" else { continue }
                 do {
-                    let fileSamples = try await parseFile(fileURL: fileURL, allowedMonths: allowedMonths)
+                    let fileSamples = try await parseFile(
+                        fileURL: fileURL,
+                        allowedMonths: allowedMonths,
+                        seenRequestIds: &seenRequestIds
+                    )
                     samples.append(contentsOf: fileSamples)
                 } catch {
                     hadReadError = true
@@ -92,7 +97,11 @@ final class ClaudeJSONLService: Sendable {
         return CachedMonthlyUsage(months: stats, fetchedAt: Date(), error: hadReadError ? .readError : nil)
     }
 
-    private func parseFile(fileURL: URL, allowedMonths: Set<String>) async throws -> [MonthlyUsageSample] {
+    private func parseFile(
+        fileURL: URL,
+        allowedMonths: Set<String>,
+        seenRequestIds: inout Set<String>
+    ) async throws -> [MonthlyUsageSample] {
         let handle = try FileHandle(forReadingFrom: fileURL)
         defer { try? handle.close() }
 
@@ -125,17 +134,22 @@ final class ClaudeJSONLService: Sendable {
                 cacheReadInputTokens: cacheReadTokens
             )
 
-            samples.append(
-                MonthlyUsageSample(
-                    month: month,
-                    model: model,
-                    inputTokens: inputTokens,
-                    outputTokens: outputTokens,
-                    cacheCreationInputTokens: cacheCreationTokens,
-                    cacheReadInputTokens: cacheReadTokens,
-                    costUSD: cost
-                )
+            let sample = MonthlyUsageSample(
+                month: month,
+                model: model,
+                inputTokens: inputTokens,
+                outputTokens: outputTokens,
+                cacheCreationInputTokens: cacheCreationTokens,
+                cacheReadInputTokens: cacheReadTokens,
+                costUSD: cost
             )
+            let dedupeKey = entry.requestId ?? entry.requestIdSnake ?? entry.uuid
+            guard let accepted = JSONLDedupe.acceptSample(
+                sample,
+                dedupeKey: dedupeKey,
+                seenKeys: &seenRequestIds
+            ) else { continue }
+            samples.append(accepted)
         }
 
         return samples
@@ -147,6 +161,19 @@ private struct ClaudeLogEntry: Decodable {
     let timestamp: String?
     let message: ClaudeLogMessage?
     let model: String?
+    let requestId: String?
+    let requestIdSnake: String?
+    let uuid: String?
+
+    enum CodingKeys: String, CodingKey {
+        case type
+        case timestamp
+        case message
+        case model
+        case requestId
+        case requestIdSnake = "request_id"
+        case uuid
+    }
 }
 
 private struct ClaudeLogMessage: Decodable {
