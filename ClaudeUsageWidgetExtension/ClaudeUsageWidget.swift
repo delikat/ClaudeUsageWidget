@@ -115,9 +115,10 @@ struct SmallWidgetView: View {
                     RefreshButton()
                     Spacer()
                     if let resetAt = entry.usage.fiveHourResetAt {
-                        (Text("Resets in ") + Text(resetAt, style: .relative))
+                        Text(resetAt, style: .relative)
                             .font(.system(size: 9, weight: .medium))
                             .foregroundStyle(.secondary)
+                            .lineLimit(1)
                     }
                 }
             }
@@ -187,9 +188,10 @@ struct UsageCard: View {
                 }
                 Spacer()
                 if let resetAt = resetAt {
-                    (Text("Resets in ") + Text(resetAt, style: .relative))
+                    Text(resetAt, style: .relative)
                         .font(.system(size: 9, weight: .medium))
                         .foregroundStyle(.secondary)
+                        .lineLimit(1)
                 }
             }
         }
@@ -479,7 +481,7 @@ struct SmallGaugeWidgetView: View {
                 )
 
                 if let resetAt = entry.usage.fiveHourResetAt {
-                    (Text("in ") + Text(resetAt, style: .relative))
+                    Text(resetAt, style: .relative)
                         .font(.system(size: 9, weight: .medium))
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
@@ -551,7 +553,7 @@ struct GaugeCard: View {
             )
 
             if let resetAt = resetAt {
-                (Text("in ") + Text(resetAt, style: .relative))
+                Text(resetAt, style: .relative)
                     .font(.system(size: 9, weight: .medium))
                     .foregroundStyle(.secondary)
                     .lineLimit(1)

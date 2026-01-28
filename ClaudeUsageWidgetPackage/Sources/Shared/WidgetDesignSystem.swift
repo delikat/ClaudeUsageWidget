@@ -77,13 +77,7 @@ public struct DSProgressBar: View {
                     .fill(Color.dsTrackBackground)
                     .frame(height: barHeight)
                 RoundedRectangle(cornerRadius: cornerRadius)
-                    .fill(
-                        LinearGradient(
-                            colors: [color, color.opacity(0.8)],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
+                    .fill(color)
                     .frame(width: geometry.size.width * CGFloat(min(max(0, value), 100) / 100), height: barHeight)
                     .animation(.easeInOut(duration: 0.8), value: value)
             }
