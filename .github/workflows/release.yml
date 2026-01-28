@@ -22,8 +22,6 @@ jobs:
       WORKSPACE: ClaudeUsageWidget.xcworkspace
       SCHEME: ClaudeUsageWidget
       CONFIGURATION: Release
-      DERIVED_DATA: ${{ runner.temp }}/DerivedData
-      KEYCHAIN_PATH: ${{ runner.temp }}/build.keychain
       KEYCHAIN_PASSWORD: ${{ secrets.CERTIFICATE_PASSWORD }}
     steps:
       - name: Checkout
@@ -31,6 +29,12 @@ jobs:
         with:
           fetch-depth: 0
           ref: ${{ github.event.inputs.tag || github.ref }}
+
+      - name: Set build paths
+        run: |
+          set -euo pipefail
+          echo "DERIVED_DATA=$RUNNER_TEMP/DerivedData" >> "$GITHUB_ENV"
+          echo "KEYCHAIN_PATH=$RUNNER_TEMP/build.keychain" >> "$GITHUB_ENV"
 
       - name: Resolve release tag
         run: |
