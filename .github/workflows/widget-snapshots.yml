@@ -4,12 +4,12 @@ on:
   pull_request:
     paths:
       - "WidgetSnapshotTests/**"
-      - "ClaudeUsageWidgetExtension/**"
+      - "AgentUsageWidgetExtension/**"
       - "CodexUsageWidgetExtension/**"
-      - "ClaudeUsageWidgetPackage/**"
+      - "AgentUsageWidgetPackage/**"
       - "Config/**"
-      - "ClaudeUsageWidget.xcodeproj/**"
-      - "ClaudeUsageWidget.xcworkspace/**"
+      - "AgentUsageWidget.xcodeproj/**"
+      - "AgentUsageWidget.xcworkspace/**"
       - ".github/workflows/widget-snapshots.yml"
   workflow_dispatch:
 
@@ -33,7 +33,7 @@ jobs:
       - name: Generate widget snapshots
         run: |
           set -o pipefail
-          xcodebuild -workspace ClaudeUsageWidget.xcworkspace \
+          xcodebuild -workspace AgentUsageWidget.xcworkspace \
             -scheme WidgetSnapshotTests \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \

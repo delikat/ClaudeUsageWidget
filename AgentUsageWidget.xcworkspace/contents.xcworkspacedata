@@ -2,9 +2,9 @@
 <Workspace
    version = "1.0">
    <FileRef
-      location = "group:ClaudeUsageWidgetPackage">
+      location = "group:AgentUsageWidgetPackage">
    </FileRef>
    <FileRef
-      location = "container:ClaudeUsageWidget.xcodeproj">
+      location = "container:AgentUsageWidget.xcodeproj">
    </FileRef>
 </Workspace>

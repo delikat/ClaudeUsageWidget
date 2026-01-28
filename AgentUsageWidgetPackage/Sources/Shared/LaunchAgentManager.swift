@@ -4,7 +4,7 @@ import Foundation
 public final class LaunchAgentManager: Sendable {
     public static let shared = LaunchAgentManager()
 
-    private let plistName = "com.delikat.claudewidget.plist"
+    private let plistName = "com.delikat.agentusagewidget.plist"
 
     private var launchAgentsURL: URL? {
         FileManager.default.homeDirectoryForCurrentUser
@@ -51,7 +51,7 @@ public final class LaunchAgentManager: Sendable {
 
         // Create the plist content
         let plistContent: [String: Any] = [
-            "Label": "com.delikat.claudewidget",
+            "Label": "com.delikat.agentusagewidget",
             "ProgramArguments": ["/usr/bin/open", "-a", appPath],
             "RunAtLoad": true,
             "KeepAlive": false

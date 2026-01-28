@@ -3,7 +3,7 @@ import SwiftUI
 import WidgetKit
 import AppKit
 import Shared
-@testable import ClaudeUsageWidgetExtension
+@testable import AgentUsageWidgetExtension
 @testable import CodexUsageWidgetExtension
 
 final class WidgetSnapshotTests: XCTestCase {
@@ -414,8 +414,8 @@ private enum SnapshotOutput {
         var isDir: ObjCBool = false
 
         while FileManager.default.fileExists(atPath: current.path, isDirectory: &isDir), isDir.boolValue {
-            let hasProject = FileManager.default.fileExists(atPath: current.appendingPathComponent("ClaudeUsageWidget.xcodeproj").path)
-            let hasWorkspace = FileManager.default.fileExists(atPath: current.appendingPathComponent("ClaudeUsageWidget.xcworkspace").path)
+            let hasProject = FileManager.default.fileExists(atPath: current.appendingPathComponent("AgentUsageWidget.xcodeproj").path)
+            let hasWorkspace = FileManager.default.fileExists(atPath: current.appendingPathComponent("AgentUsageWidget.xcworkspace").path)
             let hasGit = FileManager.default.fileExists(atPath: current.appendingPathComponent(".git").path)
 
             if hasProject || hasWorkspace || hasGit {

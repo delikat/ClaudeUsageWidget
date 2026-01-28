@@ -681,7 +681,7 @@ struct GaugeWidgetEntryView: View {
 
 // MARK: - Widget Entry View
 
-struct ClaudeUsageWidgetEntryView: View {
+struct AgentUsageWidgetEntryView: View {
     @Environment(\.widgetFamily) var family
     let entry: UsageEntry
 
@@ -701,15 +701,15 @@ struct ClaudeUsageWidgetEntryView: View {
 
 // MARK: - Widget Configuration
 
-struct ClaudeUsageWidget: Widget {
-    let kind: String = "ClaudeUsageWidget"
+struct AgentUsageWidget: Widget {
+    let kind: String = "AgentUsageWidget"
 
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: Provider()) { entry in
-            ClaudeUsageWidgetEntryView(entry: entry)
+            AgentUsageWidgetEntryView(entry: entry)
                 .containerBackground(.fill.tertiary, for: .widget)
         }
-        .configurationDisplayName("Claude Usage")
+        .configurationDisplayName("Agent Usage")
         .description("Monitor your Claude Code API usage limits")
         .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
     }
@@ -725,7 +725,7 @@ struct ClaudeUsageGaugeWidget: Widget {
             GaugeWidgetEntryView(entry: entry)
                 .containerBackground(.fill.tertiary, for: .widget)
         }
-        .configurationDisplayName("Claude Usage (Gauge)")
+        .configurationDisplayName("Agent Usage (Gauge)")
         .description("Circular gauge showing Claude Code API usage")
         .supportedFamilies([.systemSmall, .systemMedium])
     }
@@ -756,9 +756,9 @@ struct MonthlyRefreshButton: View {
 // MARK: - Widget Bundle
 
 @main
-struct ClaudeUsageWidgetBundle: WidgetBundle {
+struct AgentUsageWidgetBundle: WidgetBundle {
     var body: some Widget {
-        ClaudeUsageWidget()
+        AgentUsageWidget()
         ClaudeUsageGaugeWidget()
         UsageHeatmapWidget()
     }
@@ -767,19 +767,19 @@ struct ClaudeUsageWidgetBundle: WidgetBundle {
 // MARK: - Previews
 
 #Preview("Small", as: .systemSmall) {
-    ClaudeUsageWidget()
+    AgentUsageWidget()
 } timeline: {
     UsageEntry(date: Date(), usage: .placeholder, monthly: .placeholder)
 }
 
 #Preview("Medium", as: .systemMedium) {
-    ClaudeUsageWidget()
+    AgentUsageWidget()
 } timeline: {
     UsageEntry(date: Date(), usage: .placeholder, monthly: .placeholder)
 }
 
 #Preview("Error State", as: .systemSmall) {
-    ClaudeUsageWidget()
+    AgentUsageWidget()
 } timeline: {
     UsageEntry(date: Date(), usage: .noCredentialsError, monthly: .noData)
 }
@@ -797,7 +797,7 @@ struct ClaudeUsageWidgetBundle: WidgetBundle {
 }
 
 #Preview("Large", as: .systemLarge) {
-    ClaudeUsageWidget()
+    AgentUsageWidget()
 } timeline: {
     UsageEntry(date: Date(), usage: .placeholder, monthly: .placeholder)
 }

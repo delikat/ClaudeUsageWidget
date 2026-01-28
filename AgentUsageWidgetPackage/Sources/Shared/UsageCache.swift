@@ -88,9 +88,9 @@ public enum UsageProvider: String, Sendable {
     public var refreshNotificationName: Notification.Name {
         switch self {
         case .claude:
-            return Notification.Name("com.delikat.claudewidget.refresh")
+            return Notification.Name("com.delikat.agentusagewidget.refresh")
         case .codex:
-            return Notification.Name("com.delikat.claudewidget.codex.refresh")
+            return Notification.Name("com.delikat.agentusagewidget.codex.refresh")
         }
     }
 }
@@ -113,9 +113,9 @@ public enum MonthlyUsageProvider: String, Sendable {
     public var refreshNotificationName: Notification.Name {
         switch self {
         case .claude:
-            return Notification.Name("com.delikat.claudewidget.monthly.refresh")
+            return Notification.Name("com.delikat.agentusagewidget.monthly.refresh")
         case .codex:
-            return Notification.Name("com.delikat.claudewidget.codex.monthly.refresh")
+            return Notification.Name("com.delikat.agentusagewidget.codex.monthly.refresh")
         }
     }
 }
