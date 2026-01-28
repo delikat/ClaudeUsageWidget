@@ -1,50 +1,15 @@
-import WidgetKit
+import Foundation
 import SwiftUI
-import Shared
 
-// MARK: - Heatmap Colors
-
-extension Color {
-    // Heatmap intensity colors (light to dark green)
-    static let heatmapLevel0 = Color(white: 0.2)  // No activity - dark gray
-    static let heatmapLevel1 = Color(red: 0.0, green: 0.4, blue: 0.2)
-    static let heatmapLevel2 = Color(red: 0.0, green: 0.5, blue: 0.3)
-    static let heatmapLevel3 = Color(red: 0.0, green: 0.65, blue: 0.4)
-    static let heatmapLevel4 = Color(red: 0.0, green: 0.8, blue: 0.5)
+public extension Color {
+    static let snapshotHeatmapLevel0 = Color(white: 0.2)
+    static let snapshotHeatmapLevel1 = Color(red: 0.0, green: 0.4, blue: 0.2)
+    static let snapshotHeatmapLevel2 = Color(red: 0.0, green: 0.5, blue: 0.3)
+    static let snapshotHeatmapLevel3 = Color(red: 0.0, green: 0.65, blue: 0.4)
+    static let snapshotHeatmapLevel4 = Color(red: 0.0, green: 0.8, blue: 0.5)
 }
 
-// MARK: - Heatmap Timeline Provider
-
-struct HeatmapProvider: TimelineProvider {
-    func placeholder(in context: Context) -> HeatmapEntry {
-        HeatmapEntry(date: Date(), history: .placeholder)
-    }
-
-    func getSnapshot(in context: Context, completion: @escaping (HeatmapEntry) -> Void) {
-        let history = UsageHistoryManager.shared.read() ?? .placeholder
-        completion(HeatmapEntry(date: Date(), history: history))
-    }
-
-    func getTimeline(in context: Context, completion: @escaping (Timeline<HeatmapEntry>) -> Void) {
-        let history = UsageHistoryManager.shared.read() ?? UsageHistory()
-        let entry = HeatmapEntry(date: Date(), history: history)
-        // Refresh widget every hour (history updates hourly)
-        let nextUpdate = Calendar.current.date(byAdding: .hour, value: 1, to: Date())!
-        let timeline = Timeline(entries: [entry], policy: .after(nextUpdate))
-        completion(timeline)
-    }
-}
-
-// MARK: - Heatmap Timeline Entry
-
-struct HeatmapEntry: TimelineEntry {
-    let date: Date
-    let history: UsageHistory
-}
-
-// MARK: - Heatmap Cell View
-
-struct HeatmapCell: View {
+private struct SnapshotHeatmapCell: View {
     let tokens: Int
     let maxTokens: Int
 
@@ -55,17 +20,17 @@ struct HeatmapCell: View {
 
     private var cellColor: Color {
         if tokens == 0 {
-            return .heatmapLevel0
+            return .snapshotHeatmapLevel0
         }
         switch intensity {
         case 0..<0.25:
-            return .heatmapLevel1
+            return .snapshotHeatmapLevel1
         case 0.25..<0.5:
-            return .heatmapLevel2
+            return .snapshotHeatmapLevel2
         case 0.5..<0.75:
-            return .heatmapLevel3
+            return .snapshotHeatmapLevel3
         default:
-            return .heatmapLevel4
+            return .snapshotHeatmapLevel4
         }
     }
 
@@ -75,53 +40,42 @@ struct HeatmapCell: View {
     }
 }
 
-// MARK: - Heatmap Grid View
-
-struct HeatmapGridView: View {
+private struct SnapshotHeatmapGridView: View {
     let history: UsageHistory
+    let referenceDate: Date
     let weeksToShow: Int = 5
     let daysPerWeek: Int = 7
 
-    private var calendar: Calendar { Calendar.current }
+    private var calendar: Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0) ?? .current
+        return calendar
+    }
 
-    /// Get the date string for a given day offset from today
     private func dateString(for dayOffset: Int) -> String {
         let formatter = DateFormatter()
+        formatter.calendar = calendar
+        formatter.timeZone = calendar.timeZone
+        formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.dateFormat = "yyyy-MM-dd"
-        guard let date = calendar.date(byAdding: .day, value: -dayOffset, to: Date()) else {
+        guard let date = calendar.date(byAdding: .day, value: -dayOffset, to: referenceDate) else {
             return ""
         }
         return formatter.string(from: date)
     }
 
-    /// Get the day of week index (0 = Sunday) for today
     private var todayWeekdayIndex: Int {
-        // Calendar weekday is 1-indexed (1 = Sunday)
-        return calendar.component(.weekday, from: Date()) - 1
+        calendar.component(.weekday, from: referenceDate) - 1
     }
 
-    /// Calculate the total days to show based on weeks and current day
-    private var totalDays: Int {
-        // Show complete weeks plus days up to today
-        return weeksToShow * daysPerWeek
-    }
-
-    /// Build the grid data: array of weeks, each containing 7 days
-    /// Grid goes from bottom-left (oldest) to top-right (newest)
     private var gridData: [[DailyUsage?]] {
         var weeks: [[DailyUsage?]] = []
 
-        // We want to show 5 weeks of data ending with today
-        // Rightmost column is current week, bottommost row is Sunday
         for weekIndex in 0..<weeksToShow {
             var week: [DailyUsage?] = []
             for dayOfWeek in 0..<daysPerWeek {
-                // Calculate day offset from today
-                // weekIndex 0 = current week, weekIndex 4 = 4 weeks ago
-                // dayOfWeek 0 = Sunday, dayOfWeek 6 = Saturday
                 let daysAgo = (weeksToShow - 1 - weekIndex) * 7 + (todayWeekdayIndex - dayOfWeek)
 
-                // Skip future days
                 if daysAgo < 0 {
                     week.append(nil)
                     continue
@@ -142,7 +96,6 @@ struct HeatmapGridView: View {
         let dayLabels = ["S", "M", "T", "W", "T", "F", "S"]
 
         HStack(spacing: 3) {
-            // Day labels column (Sun-Sat)
             VStack(spacing: 3) {
                 ForEach(dayLabels.indices, id: \.self) { index in
                     Text(dayLabels[index])
@@ -152,13 +105,12 @@ struct HeatmapGridView: View {
                 }
             }
 
-            // Heatmap grid
             HStack(spacing: 3) {
                 ForEach(0..<weeksToShow, id: \.self) { weekIndex in
                     VStack(spacing: 3) {
                         ForEach(0..<daysPerWeek, id: \.self) { dayIndex in
                             let usage = gridData[weekIndex][dayIndex]
-                            HeatmapCell(
+                            SnapshotHeatmapCell(
                                 tokens: usage?.totalTokens ?? 0,
                                 maxTokens: maxTokens
                             )
@@ -171,16 +123,20 @@ struct HeatmapGridView: View {
     }
 }
 
-// MARK: - Heatmap Legend
-
-struct HeatmapLegend: View {
+private struct SnapshotHeatmapLegend: View {
     var body: some View {
         HStack(spacing: 4) {
             Text("Less")
                 .font(.system(size: 8, weight: .medium))
                 .foregroundStyle(.tertiary)
 
-            ForEach([Color.heatmapLevel0, .heatmapLevel1, .heatmapLevel2, .heatmapLevel3, .heatmapLevel4], id: \.self) { color in
+            ForEach([
+                Color.snapshotHeatmapLevel0,
+                .snapshotHeatmapLevel1,
+                .snapshotHeatmapLevel2,
+                .snapshotHeatmapLevel3,
+                .snapshotHeatmapLevel4
+            ], id: \.self) { color in
                 RoundedRectangle(cornerRadius: 2)
                     .fill(color)
                     .frame(width: 10, height: 10)
@@ -193,9 +149,7 @@ struct HeatmapLegend: View {
     }
 }
 
-// MARK: - Stats Summary
-
-struct HeatmapStats: View {
+private struct SnapshotHeatmapStats: View {
     let history: UsageHistory
 
     private var totalTokens: Int {
@@ -251,14 +205,17 @@ struct HeatmapStats: View {
     }
 }
 
-// MARK: - Large Heatmap Widget View
+public struct SnapshotLargeHeatmapWidgetView: View {
+    public let history: UsageHistory
+    public let referenceDate: Date
 
-struct LargeHeatmapWidgetView: View {
-    let entry: HeatmapEntry
+    public init(history: UsageHistory, referenceDate: Date) {
+        self.history = history
+        self.referenceDate = referenceDate
+    }
 
-    var body: some View {
+    public var body: some View {
         VStack(spacing: 8) {
-            // Header
             HStack {
                 Text("Usage Heatmap")
                     .font(.system(size: 13, weight: .semibold))
@@ -268,68 +225,16 @@ struct LargeHeatmapWidgetView: View {
                     .foregroundStyle(.tertiary)
             }
 
-            // Heatmap grid
-            HeatmapGridView(history: entry.history)
+            SnapshotHeatmapGridView(history: history, referenceDate: referenceDate)
                 .frame(maxWidth: .infinity)
 
             Spacer()
 
-            // Stats summary
-            HeatmapStats(history: entry.history)
+            SnapshotHeatmapStats(history: history)
 
-            // Legend
-            HeatmapLegend()
+            SnapshotHeatmapLegend()
         }
         .dsCardStyle(padding: 16)
         .padding(6)
     }
-}
-
-// MARK: - Widget Entry View
-
-struct HeatmapWidgetEntryView: View {
-    @Environment(\.widgetFamily) var family
-    let entry: HeatmapEntry
-
-    var body: some View {
-        switch family {
-        case .systemLarge:
-            LargeHeatmapWidgetView(entry: entry)
-        default:
-            // Heatmap only supports large size
-            VStack {
-                Image(systemName: "calendar.badge.exclamationmark")
-                    .font(.title2)
-                    .foregroundStyle(Color.dsOrange)
-                Text("Use Large Size")
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(.secondary)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-        }
-    }
-}
-
-// MARK: - Heatmap Widget Configuration
-
-struct UsageHeatmapWidget: Widget {
-    let kind: String = "UsageHeatmapWidget"
-
-    var body: some WidgetConfiguration {
-        StaticConfiguration(kind: kind, provider: HeatmapProvider()) { entry in
-            HeatmapWidgetEntryView(entry: entry)
-                .containerBackground(.fill.tertiary, for: .widget)
-        }
-        .configurationDisplayName("Usage Heatmap")
-        .description("GitHub-style heatmap showing daily Claude & Codex usage")
-        .supportedFamilies([.systemLarge])
-    }
-}
-
-// MARK: - Previews
-
-#Preview("Heatmap Large", as: .systemLarge) {
-    UsageHeatmapWidget()
-} timeline: {
-    HeatmapEntry(date: Date(), history: .placeholder)
 }
