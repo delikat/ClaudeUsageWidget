@@ -142,7 +142,8 @@ struct HeatmapGridView: View {
         HStack(spacing: 3) {
             // Day labels column (Sun-Sat)
             VStack(spacing: 3) {
-                ForEach(["S", "M", "T", "W", "T", "F", "S"], id: \.self) { day in
+                let days = ["S", "M", "T", "W", "T", "F", "S"]
+                ForEach(Array(days.enumerated()), id: \.offset) { _, day in
                     Text(day)
                         .font(.system(size: 8, weight: .medium))
                         .foregroundStyle(.tertiary)

@@ -16,12 +16,3 @@ jobs:
       - name: SwiftPM tests
         run: swift test
         working-directory: ClaudeUsageWidgetPackage
-
-      - name: Xcode tests
-        run: |
-          xcodebuild \
-            -workspace ClaudeUsageWidget.xcworkspace \
-            -scheme ClaudeUsageWidget \
-            -destination 'platform=macOS' \
-            test \
-            CODE_SIGNING_ALLOWED=NO

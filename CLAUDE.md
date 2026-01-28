@@ -18,6 +18,12 @@ xcodebuild -workspace ClaudeUsageWidget.xcworkspace -scheme ClaudeUsageWidget bu
 # Build widget extension
 xcodebuild -workspace ClaudeUsageWidget.xcworkspace -scheme ClaudeUsageWidgetExtension build
 
+# Generate widget snapshots (light + dark)
+xcodebuild -workspace ClaudeUsageWidget.xcworkspace -scheme WidgetSnapshotTests test
+
+# Optional: override output directory
+WIDGET_SNAPSHOT_DIR=docs/screenshots xcodebuild -workspace ClaudeUsageWidget.xcworkspace -scheme WidgetSnapshotTests test
+
 # Run unit tests (Swift Testing framework)
 xcodebuild -workspace ClaudeUsageWidget.xcworkspace -scheme ClaudeUsageWidgetPackage test
 
@@ -52,6 +58,7 @@ xcodebuild -workspace ClaudeUsageWidget.xcworkspace -scheme ClaudeUsageWidgetUIT
 ## Development Notes
 
 - **Xcode Canvas previews do NOT work for macOS widgets.** You must run the main app to install the widget extension, then use WidgetKit Simulator or add the widget to the desktop to see changes.
+- **Snapshotting widgets:** Run the `WidgetSnapshotTests` scheme to render all widget variants to PNGs (light + dark). Defaults to `.context/widget-snapshots` with `-dark` filename suffix for dark mode. You can override the output directory via `WIDGET_SNAPSHOT_DIR`.
 - **Updating widgets during development:** After building, run these commands to see changes immediately in WidgetKit Simulator (no restart needed):
   ```bash
   # Copy build to /Applications and kill widget extensions to force reload
