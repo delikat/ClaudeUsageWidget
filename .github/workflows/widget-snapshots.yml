@@ -1,0 +1,117 @@
+name: Widget Snapshots
+
+on:
+  pull_request:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  snapshots:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+
+      - name: Generate widget snapshots
+        run: |
+          xcodebuild -workspace ClaudeUsageWidget.xcworkspace \
+            -scheme WidgetSnapshotTests \
+            test \
+            2>&1 | tail -50
+
+      - name: Copy snapshots to docs
+        run: |
+          mkdir -p docs/widget-snapshots
+          cp .context/widget-snapshots/*.png docs/widget-snapshots/
+
+      - name: Check for changes
+        id: changes
+        run: |
+          if git diff --quiet docs/widget-snapshots/; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+          else
+            echo "changed=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Commit snapshots
+        if: steps.changes.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/widget-snapshots/
+          git commit -m "Update widget snapshots"
+          git push
+
+      - name: Comment on PR with widget previews
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+
+            const snapshotDir = 'docs/widget-snapshots';
+            const files = fs.readdirSync(snapshotDir).filter(f => f.endsWith('.png')).sort();
+            const lightFiles = files.filter(f => !f.includes('-dark'));
+
+            const branch = context.payload.pull_request.head.ref;
+            const repo = context.repo.repo;
+            const owner = context.repo.owner;
+            const rawBase = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/docs/widget-snapshots`;
+
+            let markdown = `## Widget Snapshots\n\n`;
+            markdown += `<details>\n<summary>Click to preview widgets (${lightFiles.length} light mode shown, dark mode also available)</summary>\n\n`;
+
+            // Claude widgets
+            const claudeWidgets = lightFiles.filter(f => f.startsWith('claude-'));
+            if (claudeWidgets.length > 0) {
+              markdown += `### Claude\n\n`;
+              for (const file of claudeWidgets) {
+                const name = file.replace('.png', '').replace('claude-', '');
+                markdown += `**${name}**\n\n`;
+                markdown += `![${name}](${rawBase}/${file})\n\n`;
+              }
+            }
+
+            // Codex widgets
+            const codexWidgets = lightFiles.filter(f => f.startsWith('codex-'));
+            if (codexWidgets.length > 0) {
+              markdown += `### Codex\n\n`;
+              for (const file of codexWidgets) {
+                const name = file.replace('.png', '').replace('codex-', '');
+                markdown += `**${name}**\n\n`;
+                markdown += `![${name}](${rawBase}/${file})\n\n`;
+              }
+            }
+
+            markdown += `</details>`;
+
+            // Find existing comment
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const botComment = comments.find(c =>
+              c.user.type === 'Bot' && c.body.includes('## Widget Snapshots')
+            );
+
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: markdown
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: markdown
+              });
+            }
