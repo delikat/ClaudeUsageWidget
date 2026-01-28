@@ -19,15 +19,24 @@ jobs:
 
       - name: Generate widget snapshots
         run: |
+          set -o pipefail
           xcodebuild -workspace ClaudeUsageWidget.xcworkspace \
             -scheme WidgetSnapshotTests \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            DEVELOPMENT_TEAM="" \
             test \
             2>&1 | tail -50
 
       - name: Copy snapshots to docs
         run: |
           mkdir -p docs/widget-snapshots
-          cp .context/widget-snapshots/*.png docs/widget-snapshots/
+          if compgen -G ".context/widget-snapshots/*.png" > /dev/null; then
+            cp .context/widget-snapshots/*.png docs/widget-snapshots/
+          else
+            echo "No snapshot PNGs found in .context/widget-snapshots"
+          fi
 
       - name: Check for changes
         id: changes
