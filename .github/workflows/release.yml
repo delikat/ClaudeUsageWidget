@@ -128,7 +128,6 @@ jobs:
 
           codesign --force --options runtime --timestamp --entitlements "$ENTITLEMENTS_APP" --sign "$SIGNING_IDENTITY" "$APP_PATH"
           codesign --verify --deep --strict --verbose=2 "$APP_PATH"
-          spctl -a -vv "$APP_PATH"
 
       - name: Create notarization zip
         run: |
@@ -156,6 +155,12 @@ jobs:
           set -euo pipefail
           APP_PATH="$DERIVED_DATA/Build/Products/Release/$APP_NAME.app"
           xcrun stapler staple "$APP_PATH"
+
+      - name: Verify notarization
+        run: |
+          set -euo pipefail
+          APP_PATH="$DERIVED_DATA/Build/Products/Release/$APP_NAME.app"
+          spctl -a -vv "$APP_PATH"
 
       - name: Create release artifacts
         run: |
