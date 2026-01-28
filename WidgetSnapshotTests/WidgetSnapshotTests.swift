@@ -348,7 +348,11 @@ private struct SnapshotFixtures {
 
 private enum SnapshotOutput {
     static func outputDirectory() -> URL {
-        if let custom = ProcessInfo.processInfo.environment["WIDGET_SNAPSHOT_DIR"], !custom.isEmpty {
+        // Check both direct env var and TEST_RUNNER_ prefixed version (for xcodebuild)
+        let envKeys = ["WIDGET_SNAPSHOT_DIR", "TEST_RUNNER_WIDGET_SNAPSHOT_DIR"]
+        let custom = envKeys.compactMap { ProcessInfo.processInfo.environment[$0] }.first { !$0.isEmpty }
+
+        if let custom = custom {
             let expanded = (custom as NSString).expandingTildeInPath
             let customURL = URL(fileURLWithPath: expanded, isDirectory: true)
             if expanded.hasPrefix("/") {

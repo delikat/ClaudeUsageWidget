@@ -186,28 +186,28 @@ struct HeatmapGridView: View {
     var body: some View {
         let thresholds = usageThresholds
 
-        HStack(spacing: 3) {
+        HStack(spacing: 4) {
             // Day labels column (Sun-Sat)
-            VStack(spacing: 3) {
+            VStack(spacing: 4) {
                 let days = ["S", "M", "T", "W", "T", "F", "S"]
                 ForEach(Array(days.enumerated()), id: \.offset) { _, day in
                     Text(day)
-                        .font(.system(size: 8, weight: .medium))
+                        .font(.system(size: 9, weight: .medium))
                         .foregroundStyle(.tertiary)
-                        .frame(width: 12, height: 12)
+                        .frame(width: 14, height: 14)
                 }
             }
 
             // Heatmap grid
-            HStack(spacing: 3) {
+            HStack(spacing: 4) {
                 ForEach(0..<weeksToShow, id: \.self) { weekIndex in
-                    VStack(spacing: 3) {
+                    VStack(spacing: 4) {
                         ForEach(0..<daysPerWeek, id: \.self) { dayIndex in
                             let usage = gridData[weekIndex][dayIndex]
                             HeatmapCell(
                                 level: level(for: usage?.totalTokens ?? 0, thresholds: thresholds)
                             )
-                            .frame(width: 12, height: 12)
+                            .frame(width: 14, height: 14)
                         }
                     }
                 }
@@ -342,7 +342,7 @@ struct LargeHeatmapWidgetView: View {
     let entry: HeatmapEntry
 
     var body: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 12) {
             // Header
             HStack {
                 Text("Usage Heatmap")
@@ -353,9 +353,10 @@ struct LargeHeatmapWidgetView: View {
                     .foregroundStyle(.tertiary)
             }
 
-            // Heatmap grid
+            Spacer()
+
+            // Heatmap grid - centered
             HeatmapGridView(history: entry.history)
-                .frame(maxWidth: .infinity)
 
             Spacer()
 
