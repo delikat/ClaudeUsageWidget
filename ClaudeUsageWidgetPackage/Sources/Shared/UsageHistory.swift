@@ -25,9 +25,12 @@ public struct DailyUsage: Codable, Sendable, Equatable {
 public struct UsageHistory: Codable, Sendable {
     /// Daily usage entries, sorted by date descending (most recent first)
     public var entries: [DailyUsage]
+    /// When this history was last updated
+    public var fetchedAt: Date?
 
-    public init(entries: [DailyUsage] = []) {
+    public init(entries: [DailyUsage] = [], fetchedAt: Date? = nil) {
         self.entries = entries
+        self.fetchedAt = fetchedAt
     }
 
     /// Get usage for a specific date
@@ -63,7 +66,7 @@ public struct UsageHistory: Codable, Sendable {
             entries.append(DailyUsage(date: dateString, claudeTokens: claudeTokens, codexTokens: codexTokens))
         }
 
-        return UsageHistory(entries: entries)
+        return UsageHistory(entries: entries, fetchedAt: Date())
     }
 }
 

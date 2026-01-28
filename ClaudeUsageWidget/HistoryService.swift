@@ -49,7 +49,8 @@ final class HistoryService: Sendable {
 
         // Merge with existing history
         let existingHistory = UsageHistoryManager.shared.read() ?? UsageHistory()
-        let merged = UsageAggregator.merge(new: aggregated, existing: existingHistory)
+        var merged = UsageAggregator.merge(new: aggregated, existing: existingHistory)
+        merged.fetchedAt = Date()
 
         // Write updated history
         do {
