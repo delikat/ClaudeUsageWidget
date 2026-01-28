@@ -1,7 +1,6 @@
 import Foundation
 import Shared
 import UserNotifications
-import Shared
 
 /// Notification thresholds and provider info
 enum NotificationProvider: String {
@@ -11,7 +10,7 @@ enum NotificationProvider: String {
     var displayName: String {
         switch self {
         case .claude: return "Claude"
-        case .codex: return "Codex"
+        case .codex: return "ChatGPT"
         }
     }
 }
