@@ -51,14 +51,21 @@ final class CodexJSONLService: Sendable {
         var samples: [MonthlyUsageSample] = []
         var hadReadError = false
 
-        let fileURLs = (try? FileManager.default.contentsOfDirectory(at: root, includingPropertiesForKeys: nil)) ?? []
-        for fileURL in fileURLs where fileURL.pathExtension == "jsonl" {
-            do {
-                let fileSamples = try await parseFile(fileURL: fileURL, allowedMonths: allowedMonths)
-                samples.append(contentsOf: fileSamples)
-            } catch {
-                hadReadError = true
-                AppLog.usage.error("CodexJSONLService: Failed to parse \(fileURL.lastPathComponent): \(error.localizedDescription)")
+        let enumerator = FileManager.default.enumerator(
+            at: root,
+            includingPropertiesForKeys: [.isRegularFileKey],
+            options: [.skipsHiddenFiles]
+        )
+        if let enumerator {
+            for case let fileURL as URL in enumerator {
+                guard fileURL.pathExtension == "jsonl" else { continue }
+                do {
+                    let fileSamples = try await parseFile(fileURL: fileURL, allowedMonths: allowedMonths)
+                    samples.append(contentsOf: fileSamples)
+                } catch {
+                    hadReadError = true
+                    AppLog.usage.error("CodexJSONLService: Failed to parse \(fileURL.lastPathComponent): \(error.localizedDescription)")
+                }
             }
         }
 

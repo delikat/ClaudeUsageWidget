@@ -33,7 +33,7 @@ ClaudeUsageWidget/
 - Reduces project file conflicts in teams
 
 ### App Sandbox
-The app is sandboxed by default with basic file access permissions. Modify `ClaudeUsageWidget.entitlements` to add capabilities as needed.
+The app is currently configured without App Sandbox (no `com.apple.security.app-sandbox` entitlement). If you want a sandboxed build, you will need to enable App Sandbox, add `com.apple.security.network.client`, and switch file access to user-selected folders (security-scoped bookmarks) for `~/.claude` and `~/.codex`.
 
 ## Development Notes
 
@@ -81,7 +81,9 @@ Build settings are managed through XCConfig files in `Config/`:
 - `Config/Tests.xcconfig` - Test-specific settings
 
 ### App Sandbox & Entitlements
-The app is sandboxed by default with basic file access. Edit `ClaudeUsageWidget/ClaudeUsageWidget.entitlements` to add capabilities:
+The app uses an App Group entitlement for widget data sharing. If you fork, update the App Group ID in `Config/ClaudeUsageWidget.entitlements` and `ClaudeUsageWidgetPackage/Sources/Shared/AppGroup.swift` to match your own Team ID. App Groups require a properly signed build (set `DEVELOPMENT_TEAM` in `Config/Shared.xcconfig`).
+
+If you choose to sandbox the app, add capabilities in `Config/ClaudeUsageWidget.entitlements` such as:
 ```xml
 <key>com.apple.security.files.user-selected.read-write</key>
 <true/>

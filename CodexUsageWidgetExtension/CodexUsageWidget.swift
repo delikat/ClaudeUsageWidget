@@ -118,7 +118,7 @@ struct CodexSmallWidgetView: View {
                     }
                 }
             }
-            .dsCardStyle(padding: 16)
+            .dsCardStyle()
             .padding(6)
         }
     }
@@ -588,7 +588,7 @@ struct CodexUsageWidget: Widget {
                 .containerBackground(.fill.tertiary, for: .widget)
         }
         .configurationDisplayName("ChatGPT Usage")
-        .description("Monitor your ChatGPT API usage limits")
+        .description("Monitor your ChatGPT usage limits")
         .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
     }
 }
@@ -604,7 +604,7 @@ struct CodexUsageGaugeWidget: Widget {
                 .containerBackground(.fill.tertiary, for: .widget)
         }
         .configurationDisplayName("ChatGPT Usage (Gauge)")
-        .description("Circular gauge showing ChatGPT API usage")
+        .description("Circular gauge showing ChatGPT usage")
         .supportedFamilies([.systemSmall, .systemMedium])
     }
 }
