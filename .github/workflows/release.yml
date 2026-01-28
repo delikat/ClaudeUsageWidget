@@ -25,21 +25,25 @@ jobs:
       DERIVED_DATA: ${{ runner.temp }}/DerivedData
       KEYCHAIN_PATH: ${{ runner.temp }}/build.keychain
       KEYCHAIN_PASSWORD: ${{ secrets.CERTIFICATE_PASSWORD }}
-      RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          ref: ${{ inputs.tag || github.ref }}
+          ref: ${{ github.event.inputs.tag || github.ref }}
 
-      - name: Validate release tag
+      - name: Resolve release tag
         run: |
           set -euo pipefail
-          if [ -z "$RELEASE_TAG" ]; then
-            echo "RELEASE_TAG is empty."
+          TAG="${{ github.event.inputs.tag }}"
+          if [ -z "$TAG" ]; then
+            TAG="${{ github.ref_name }}"
+          fi
+          if [ -z "$TAG" ]; then
+            echo "Release tag is empty."
             exit 1
           fi
+          echo "RELEASE_TAG=$TAG" >> "$GITHUB_ENV"
 
       - name: Import Developer ID certificate
         env:
