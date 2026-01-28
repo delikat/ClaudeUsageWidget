@@ -139,11 +139,13 @@ struct HeatmapGridView: View {
     var body: some View {
         let maxTokens = history.maxDailyTokens
 
+        let dayLabels = ["S", "M", "T", "W", "T", "F", "S"]
+
         HStack(spacing: 3) {
             // Day labels column (Sun-Sat)
             VStack(spacing: 3) {
-                ForEach(["S", "M", "T", "W", "T", "F", "S"], id: \.self) { day in
-                    Text(day)
+                ForEach(dayLabels.indices, id: \.self) { index in
+                    Text(dayLabels[index])
                         .font(.system(size: 8, weight: .medium))
                         .foregroundStyle(.tertiary)
                         .frame(width: 12, height: 12)
