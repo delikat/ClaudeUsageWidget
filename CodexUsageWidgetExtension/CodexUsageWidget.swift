@@ -3,44 +3,18 @@ import SwiftUI
 import AppIntents
 import Shared
 
-// MARK: - Adaptive Colors
+// MARK: - Legacy Color Aliases (for backwards compatibility)
 
 extension Color {
-    // Clean system colors matching Claude Usage Tracker style
-    static let codexGreen = Color.green
-    static let codexOrange = Color.orange
-    static let codexRed = Color.red
+    // Clean system colors matching shared design system
+    static let codexGreen = Color.dsGreen
+    static let codexOrange = Color.dsOrange
+    static let codexRed = Color.dsRed
 
     // Card styling colors
-    static let codexCardBackground = Color(nsColor: .controlBackgroundColor).opacity(0.4)
-    static let codexCardBorder = Color.gray.opacity(0.2)
-    static let codexTrackBackground = Color.secondary.opacity(0.15)
-}
-
-// MARK: - Status Icon Helper
-
-private func statusIcon(for percentage: Double) -> String {
-    switch percentage {
-    case 0..<50:
-        return "checkmark.circle.fill"
-    case 50..<80:
-        return "exclamationmark.triangle.fill"
-    default:
-        return "xmark.circle.fill"
-    }
-}
-
-// MARK: - Usage Color Helper
-
-private func usageColor(for value: Double) -> Color {
-    switch value {
-    case 0..<50:
-        return .codexGreen
-    case 50..<80:
-        return .codexOrange
-    default:
-        return .codexRed
-    }
+    static let codexCardBackground = Color.dsCardBackground
+    static let codexCardBorder = Color.dsCardBorder
+    static let codexTrackBackground = Color.dsTrackBackground
 }
 
 // MARK: - Formatting Helpers
@@ -72,96 +46,6 @@ private func shortModelName(_ model: String) -> String {
         .replacingOccurrences(of: "gpt-", with: "")
         .replacingOccurrences(of: "o1-", with: "o1-")
     return trimmed.isEmpty ? model : trimmed
-}
-
-// MARK: - Card Background Modifier
-
-struct CodexCardBackground: ViewModifier {
-    var padding: CGFloat = 12
-
-    func body(content: Content) -> some View {
-        content
-            .padding(padding)
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Color.codexCardBackground)
-                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .strokeBorder(Color.codexCardBorder, lineWidth: 1)
-            )
-    }
-}
-
-extension View {
-    func codexCardStyle(padding: CGFloat = 12) -> some View {
-        modifier(CodexCardBackground(padding: padding))
-    }
-}
-
-// MARK: - Progress Bar
-
-struct CodexProgressBar: View {
-    let value: Double
-    let color: Color
-    private let barHeight: CGFloat = 8
-    private let cornerRadius: CGFloat = 4
-
-    var body: some View {
-        GeometryReader { geometry in
-            ZStack(alignment: .leading) {
-                RoundedRectangle(cornerRadius: cornerRadius)
-                    .fill(Color.codexTrackBackground)
-                    .frame(height: barHeight)
-                RoundedRectangle(cornerRadius: cornerRadius)
-                    .fill(
-                        LinearGradient(
-                            colors: [color, color.opacity(0.8)],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
-                    .frame(width: geometry.size.width * CGFloat(min(max(0, value), 100) / 100), height: barHeight)
-                    .animation(.easeInOut(duration: 0.8), value: value)
-            }
-        }
-        .frame(height: barHeight)
-    }
-}
-
-// MARK: - Circular Ring Gauge
-
-struct CodexCircularRingGauge: View {
-    let value: Double
-    let color: Color
-    let lineWidth: CGFloat
-
-    init(value: Double, color: Color, lineWidth: CGFloat = 8) {
-        self.value = value
-        self.color = color
-        self.lineWidth = lineWidth
-    }
-
-    var body: some View {
-        ZStack {
-            // Background track
-            Circle()
-                .stroke(Color.codexTrackBackground, lineWidth: lineWidth)
-
-            // Filled arc
-            Circle()
-                .trim(from: 0, to: CGFloat(min(value, 100)) / 100)
-                .stroke(color, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
-                .rotationEffect(.degrees(-90))
-                .animation(.easeInOut(duration: 0.8), value: value)
-
-            // Percentage text
-            Text("\(Int(value))%")
-                .font(.system(size: 14, weight: .bold, design: .monospaced))
-                .foregroundStyle(color)
-        }
-    }
 }
 
 // MARK: - Timeline Provider
@@ -213,18 +97,16 @@ struct CodexSmallWidgetView: View {
                         Text(entry.usage.planTitle ?? "Usage Limit")
                             .font(.system(size: 10, weight: .medium))
                             .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
                     }
                     Spacer()
-                    HStack(spacing: 3) {
-                        Image(systemName: statusIcon(for: entry.usage.fiveHourUsage))
-                            .font(.system(size: 12, weight: .bold))
-                        Text("\(Int(entry.usage.fiveHourUsage))%")
-                            .font(.system(size: 16, weight: .bold, design: .monospaced))
-                    }
-                    .foregroundStyle(usageColor(for: entry.usage.fiveHourUsage))
+                    Text("\(Int(entry.usage.fiveHourUsage))%")
+                        .font(.system(size: 16, weight: .bold, design: .monospaced))
+                        .foregroundStyle(dsUsageColor(for: entry.usage.fiveHourUsage))
                 }
 
-                CodexProgressBar(value: entry.usage.fiveHourUsage, color: usageColor(for: entry.usage.fiveHourUsage))
+                DSProgressBar(value: entry.usage.fiveHourUsage, color: dsUsageColor(for: entry.usage.fiveHourUsage))
 
                 HStack {
                     CodexRefreshButton()
@@ -236,7 +118,7 @@ struct CodexSmallWidgetView: View {
                     }
                 }
             }
-            .codexCardStyle(padding: 16)
+            .dsCardStyle(padding: 16)
             .padding(6)
         }
     }
@@ -319,7 +201,7 @@ struct CodexLargeWidgetView: View {
                     CodexMiniGaugeStack(entry: entry)
                 }
             }
-            .codexCardStyle(padding: 16)
+            .dsCardStyle(padding: 16)
             .padding(6)
         }
     }
@@ -369,7 +251,7 @@ private struct CodexMiniGaugeStack: View {
     var body: some View {
         VStack(spacing: 8) {
             CodexMiniGauge(label: "5h", value: entry.usage.fiveHourUsage)
-            CodexMiniGauge(label: "1w", value: entry.usage.sevenDayUsage)
+            CodexMiniGauge(label: "7d", value: entry.usage.sevenDayUsage)
         }
     }
 }
@@ -383,7 +265,7 @@ private struct CodexMiniGauge: View {
             Text(label)
                 .font(.system(size: 10, weight: .semibold))
                 .foregroundStyle(.secondary)
-            CodexCircularRingGauge(value: value, color: usageColor(for: value), lineWidth: 6)
+            DSCircularRingGauge(value: value, color: dsUsageColor(for: value), lineWidth: 6, percentageFontSize: 10)
                 .frame(width: 44, height: 44)
         }
     }
@@ -407,16 +289,12 @@ struct CodexUsageCard: View {
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
-                HStack(spacing: 3) {
-                    Image(systemName: statusIcon(for: value))
-                        .font(.system(size: 12, weight: .bold))
-                    Text("\(Int(value))%")
-                        .font(.system(size: 16, weight: .bold, design: .monospaced))
-                }
-                .foregroundStyle(usageColor(for: value))
+                Text("\(Int(value))%")
+                    .font(.system(size: 16, weight: .bold, design: .monospaced))
+                    .foregroundStyle(dsUsageColor(for: value))
             }
 
-            CodexProgressBar(value: value, color: usageColor(for: value))
+            DSProgressBar(value: value, color: dsUsageColor(for: value))
 
             HStack {
                 if showRefresh {
@@ -430,7 +308,7 @@ struct CodexUsageCard: View {
                 }
             }
         }
-        .codexCardStyle()
+        .dsCardStyle()
     }
 }
 
@@ -484,7 +362,7 @@ struct CodexErrorView: View {
         VStack(spacing: 8) {
             Image(systemName: icon)
                 .font(.title2)
-                .foregroundStyle(Color.codexOrange)
+                .foregroundStyle(Color.dsOrange)
 
             Text(title)
                 .font(.system(size: 13, weight: .semibold))
@@ -494,7 +372,7 @@ struct CodexErrorView: View {
                 .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .codexCardStyle(padding: 16)
+        .dsCardStyle(padding: 16)
         .padding(6)
     }
 }
@@ -531,7 +409,7 @@ struct CodexMonthlyErrorView: View {
 
             Image(systemName: "calendar.badge.exclamationmark")
                 .font(.title2)
-                .foregroundStyle(Color.codexOrange)
+                .foregroundStyle(Color.dsOrange)
 
             Text(title)
                 .font(.system(size: 13, weight: .semibold))
@@ -543,7 +421,7 @@ struct CodexMonthlyErrorView: View {
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .codexCardStyle(padding: 16)
+        .dsCardStyle(padding: 16)
         .padding(6)
     }
 }
@@ -559,21 +437,23 @@ struct CodexSmallGaugeWidgetView: View {
         } else {
             VStack(spacing: 6) {
                 HStack {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("5 Hour")
-                            .font(.system(size: 13, weight: .semibold))
-                        Text(entry.usage.planTitle ?? "Usage Limit")
-                            .font(.system(size: 10, weight: .medium))
-                            .foregroundStyle(.secondary)
-                    }
+                    Text("5 Hour")
+                        .font(.system(size: 13, weight: .semibold))
                     Spacer()
                     CodexRefreshButton()
                 }
 
-                CodexCircularRingGauge(
+                Text(entry.usage.planTitle ?? "Usage Limit")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+
+                DSCircularRingGauge(
                     value: entry.usage.fiveHourUsage,
-                    color: usageColor(for: entry.usage.fiveHourUsage),
-                    lineWidth: 8
+                    color: dsUsageColor(for: entry.usage.fiveHourUsage),
+                    lineWidth: 8,
+                    percentageFontSize: 14
                 )
 
                 if let resetAt = entry.usage.fiveHourResetAt {
@@ -583,7 +463,7 @@ struct CodexSmallGaugeWidgetView: View {
                         .lineLimit(1)
                 }
             }
-            .codexCardStyle()
+            .dsCardStyle()
             .padding(6)
         }
     }
@@ -641,10 +521,11 @@ struct CodexGaugeCard: View {
                 }
             }
 
-            CodexCircularRingGauge(
+            DSCircularRingGauge(
                 value: value,
-                color: usageColor(for: value),
-                lineWidth: 8
+                color: dsUsageColor(for: value),
+                lineWidth: 8,
+                percentageFontSize: 14
             )
 
             if let resetAt = resetAt {
@@ -654,7 +535,7 @@ struct CodexGaugeCard: View {
                     .lineLimit(1)
             }
         }
-        .codexCardStyle()
+        .dsCardStyle()
     }
 }
 

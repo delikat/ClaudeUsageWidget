@@ -143,7 +143,7 @@ public final class UsageCacheManager: Sendable {
     /// Read cached usage data from App Group container
     public func read() -> CachedUsage? {
         guard let url = fileURL else {
-            print("UsageCacheManager: Could not get App Group container URL")
+            AppLog.cache.error("UsageCacheManager: Could not get App Group container URL")
             return nil
         }
 
@@ -157,7 +157,7 @@ public final class UsageCacheManager: Sendable {
             decoder.dateDecodingStrategy = .iso8601
             return try decoder.decode(CachedUsage.self, from: data)
         } catch {
-            print("UsageCacheManager: Failed to read cache: \(error)")
+            AppLog.cache.error("UsageCacheManager: Failed to read cache: \(error.localizedDescription)")
             return nil
         }
     }
@@ -165,18 +165,18 @@ public final class UsageCacheManager: Sendable {
     /// Write cached usage data to App Group container
     public func write(_ cache: CachedUsage) throws {
         guard let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupIdentifier) else {
-            print("UsageCacheManager: ERROR - containerURL returned nil for \(appGroupIdentifier)")
+            AppLog.cache.error("UsageCacheManager: containerURL returned nil for \(self.appGroupIdentifier)")
             throw CacheWriteError.noContainerURL
         }
 
         // Ensure the container directory exists
         if !FileManager.default.fileExists(atPath: containerURL.path) {
             try FileManager.default.createDirectory(at: containerURL, withIntermediateDirectories: true)
-            print("UsageCacheManager: Created container directory at \(containerURL.path)")
+            AppLog.cache.info("UsageCacheManager: Created container directory at \(containerURL.path)")
         }
 
         let url = containerURL.appendingPathComponent(provider.fileName)
-        print("UsageCacheManager: Writing cache to \(url.path)")
+        AppLog.cache.debug("UsageCacheManager: Writing cache to \(url.path)")
 
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
@@ -184,7 +184,7 @@ public final class UsageCacheManager: Sendable {
 
         let data = try encoder.encode(cache)
         try data.write(to: url, options: .atomic)
-        print("UsageCacheManager: Successfully wrote cache")
+        AppLog.cache.info("UsageCacheManager: Successfully wrote cache")
     }
 
     public enum CacheWriteError: Error {
@@ -212,7 +212,7 @@ public final class MonthlyUsageCacheManager: Sendable {
 
     public func read() -> CachedMonthlyUsage? {
         guard let url = fileURL else {
-            print("MonthlyUsageCacheManager: Could not get App Group container URL")
+            AppLog.cache.error("MonthlyUsageCacheManager: Could not get App Group container URL")
             return nil
         }
 
@@ -226,24 +226,24 @@ public final class MonthlyUsageCacheManager: Sendable {
             decoder.dateDecodingStrategy = .iso8601
             return try decoder.decode(CachedMonthlyUsage.self, from: data)
         } catch {
-            print("MonthlyUsageCacheManager: Failed to read cache: \(error)")
+            AppLog.cache.error("MonthlyUsageCacheManager: Failed to read cache: \(error.localizedDescription)")
             return nil
         }
     }
 
     public func write(_ cache: CachedMonthlyUsage) throws {
         guard let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupIdentifier) else {
-            print("MonthlyUsageCacheManager: ERROR - containerURL returned nil for \(appGroupIdentifier)")
+            AppLog.cache.error("MonthlyUsageCacheManager: containerURL returned nil for \(self.appGroupIdentifier)")
             throw UsageCacheManager.CacheWriteError.noContainerURL
         }
 
         if !FileManager.default.fileExists(atPath: containerURL.path) {
             try FileManager.default.createDirectory(at: containerURL, withIntermediateDirectories: true)
-            print("MonthlyUsageCacheManager: Created container directory at \(containerURL.path)")
+            AppLog.cache.info("MonthlyUsageCacheManager: Created container directory at \(containerURL.path)")
         }
 
         let url = containerURL.appendingPathComponent(provider.fileName)
-        print("MonthlyUsageCacheManager: Writing cache to \(url.path)")
+        AppLog.cache.debug("MonthlyUsageCacheManager: Writing cache to \(url.path)")
 
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
@@ -251,6 +251,6 @@ public final class MonthlyUsageCacheManager: Sendable {
 
         let data = try encoder.encode(cache)
         try data.write(to: url, options: .atomic)
-        print("MonthlyUsageCacheManager: Successfully wrote cache")
+        AppLog.cache.info("MonthlyUsageCacheManager: Successfully wrote cache")
     }
 }

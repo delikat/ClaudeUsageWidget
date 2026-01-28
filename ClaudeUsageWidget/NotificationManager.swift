@@ -1,5 +1,7 @@
 import Foundation
+import Shared
 import UserNotifications
+import Shared
 
 /// Notification thresholds and provider info
 enum NotificationProvider: String {
@@ -33,11 +35,11 @@ final class NotificationManager: @unchecked Sendable {
     func requestPermission() {
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { granted, error in
             if granted {
-                print("NotificationManager: Notification permission granted")
+                AppLog.notifications.info("NotificationManager: Notification permission granted")
             } else if let error = error {
-                print("NotificationManager: Permission error: \(error)")
+                AppLog.notifications.error("NotificationManager: Permission error: \(error.localizedDescription)")
             } else {
-                print("NotificationManager: Notification permission denied")
+                AppLog.notifications.info("NotificationManager: Notification permission denied")
             }
         }
     }
@@ -175,9 +177,9 @@ final class NotificationManager: @unchecked Sendable {
 
         UNUserNotificationCenter.current().add(request) { error in
             if let error = error {
-                print("NotificationManager: Failed to send notification: \(error)")
+                AppLog.notifications.error("NotificationManager: Failed to send notification: \(error.localizedDescription)")
             } else {
-                print("NotificationManager: Sent notification: \(title)")
+                AppLog.notifications.info("NotificationManager: Sent notification: \(title)")
             }
         }
     }

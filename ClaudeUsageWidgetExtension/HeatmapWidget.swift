@@ -145,7 +145,7 @@ struct HeatmapGridView: View {
                 ForEach(["S", "M", "T", "W", "T", "F", "S"], id: \.self) { day in
                     Text(day)
                         .font(.system(size: 8, weight: .medium))
-                        .foregroundStyle(Color.tertiaryText)
+                        .foregroundStyle(.tertiary)
                         .frame(width: 12, height: 12)
                 }
             }
@@ -176,7 +176,7 @@ struct HeatmapLegend: View {
         HStack(spacing: 4) {
             Text("Less")
                 .font(.system(size: 8, weight: .medium))
-                .foregroundStyle(Color.tertiaryText)
+                .foregroundStyle(.tertiary)
 
             ForEach([Color.heatmapLevel0, .heatmapLevel1, .heatmapLevel2, .heatmapLevel3, .heatmapLevel4], id: \.self) { color in
                 RoundedRectangle(cornerRadius: 2)
@@ -186,7 +186,7 @@ struct HeatmapLegend: View {
 
             Text("More")
                 .font(.system(size: 8, weight: .medium))
-                .foregroundStyle(Color.tertiaryText)
+                .foregroundStyle(.tertiary)
         }
     }
 }
@@ -222,19 +222,17 @@ struct HeatmapStats: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text("Claude")
                     .font(.system(size: 9, weight: .medium))
-                    .foregroundStyle(Color.secondaryText)
+                    .foregroundStyle(.secondary)
                 Text(formatTokens(claudeTokens))
                     .font(.system(size: 11, weight: .bold, design: .monospaced))
-                    .foregroundStyle(Color.primaryText)
             }
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("Codex")
                     .font(.system(size: 9, weight: .medium))
-                    .foregroundStyle(Color.secondaryText)
+                    .foregroundStyle(.secondary)
                 Text(formatTokens(codexTokens))
                     .font(.system(size: 11, weight: .bold, design: .monospaced))
-                    .foregroundStyle(Color.primaryText)
             }
 
             Spacer()
@@ -242,10 +240,10 @@ struct HeatmapStats: View {
             VStack(alignment: .trailing, spacing: 2) {
                 Text("Total")
                     .font(.system(size: 9, weight: .medium))
-                    .foregroundStyle(Color.secondaryText)
+                    .foregroundStyle(.secondary)
                 Text(formatTokens(totalTokens))
                     .font(.system(size: 11, weight: .bold, design: .monospaced))
-                    .foregroundStyle(Color.usageGreen)
+                    .foregroundStyle(Color.dsGreen)
             }
         }
     }
@@ -262,11 +260,10 @@ struct LargeHeatmapWidgetView: View {
             HStack {
                 Text("Usage Heatmap")
                     .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(Color.primaryText)
                 Spacer()
                 Text("Last 35 days")
                     .font(.system(size: 9, weight: .medium))
-                    .foregroundStyle(Color.tertiaryText)
+                    .foregroundStyle(.tertiary)
             }
 
             // Heatmap grid
@@ -281,7 +278,8 @@ struct LargeHeatmapWidgetView: View {
             // Legend
             HeatmapLegend()
         }
-        .padding(12)
+        .dsCardStyle(padding: 16)
+        .padding(6)
     }
 }
 
@@ -300,10 +298,10 @@ struct HeatmapWidgetEntryView: View {
             VStack {
                 Image(systemName: "calendar.badge.exclamationmark")
                     .font(.title2)
-                    .foregroundStyle(Color.usageOrange)
+                    .foregroundStyle(Color.dsOrange)
                 Text("Use Large Size")
                     .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(Color.secondaryText)
+                    .foregroundStyle(.secondary)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
@@ -318,7 +316,7 @@ struct UsageHeatmapWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: HeatmapProvider()) { entry in
             HeatmapWidgetEntryView(entry: entry)
-                .containerBackground(Color.widgetBackground, for: .widget)
+                .containerBackground(.fill.tertiary, for: .widget)
         }
         .configurationDisplayName("Usage Heatmap")
         .description("GitHub-style heatmap showing daily Claude & Codex usage")

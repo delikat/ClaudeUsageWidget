@@ -85,7 +85,7 @@ public final class UsageHistoryManager: Sendable {
     /// Read usage history from App Group container
     public func read() -> UsageHistory? {
         guard let url = fileURL else {
-            print("UsageHistoryManager: Could not get App Group container URL")
+            AppLog.history.error("UsageHistoryManager: Could not get App Group container URL")
             return nil
         }
 
@@ -97,7 +97,7 @@ public final class UsageHistoryManager: Sendable {
             let data = try Data(contentsOf: url)
             return try JSONDecoder().decode(UsageHistory.self, from: data)
         } catch {
-            print("UsageHistoryManager: Failed to read history: \(error)")
+            AppLog.history.error("UsageHistoryManager: Failed to read history: \(error.localizedDescription)")
             return nil
         }
     }
@@ -105,25 +105,25 @@ public final class UsageHistoryManager: Sendable {
     /// Write usage history to App Group container
     public func write(_ history: UsageHistory) throws {
         guard let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupIdentifier) else {
-            print("UsageHistoryManager: ERROR - containerURL returned nil for \(appGroupIdentifier)")
+            AppLog.history.error("UsageHistoryManager: containerURL returned nil for \(self.appGroupIdentifier)")
             throw HistoryWriteError.noContainerURL
         }
 
         // Ensure the container directory exists
         if !FileManager.default.fileExists(atPath: containerURL.path) {
             try FileManager.default.createDirectory(at: containerURL, withIntermediateDirectories: true)
-            print("UsageHistoryManager: Created container directory at \(containerURL.path)")
+            AppLog.history.info("UsageHistoryManager: Created container directory at \(containerURL.path)")
         }
 
         let url = containerURL.appendingPathComponent(fileName)
-        print("UsageHistoryManager: Writing history to \(url.path)")
+        AppLog.history.debug("UsageHistoryManager: Writing history to \(url.path)")
 
         let encoder = JSONEncoder()
         encoder.outputFormatting = .prettyPrinted
 
         let data = try encoder.encode(history)
         try data.write(to: url, options: .atomic)
-        print("UsageHistoryManager: Successfully wrote history with \(history.entries.count) entries")
+        AppLog.history.info("UsageHistoryManager: Successfully wrote history with \(history.entries.count) entries")
     }
 
     public enum HistoryWriteError: Error {
