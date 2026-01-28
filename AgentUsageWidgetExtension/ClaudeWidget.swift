@@ -27,13 +27,42 @@ private func formattedCost(_ value: Double) -> String {
     formatter.currencyCode = "USD"
     formatter.maximumFractionDigits = 2
     formatter.minimumFractionDigits = 2
+    formatter.positiveFormat = formatter.positiveFormat.replacingOccurrences(
+        of: "\\s*¤\\s*",
+        with: "¤",
+        options: .regularExpression
+    )
+    formatter.negativeFormat = formatter.negativeFormat.replacingOccurrences(
+        of: "\\s*¤\\s*",
+        with: "¤",
+        options: .regularExpression
+    )
     return formatter.string(from: NSNumber(value: value)) ?? "$0.00"
 }
 
 private func formattedTokens(_ value: Int) -> String {
+    guard value >= 1_000 else { return "\(value)" }
+    let divisor: Double
+    let suffix: String
+    if value >= 1_000_000 {
+        divisor = 1_000_000
+        suffix = "m"
+    } else {
+        divisor = 1_000
+        suffix = "k"
+    }
+    let scaled = Double(value) / divisor
     let formatter = NumberFormatter()
     formatter.numberStyle = .decimal
-    return formatter.string(from: NSNumber(value: value)) ?? "\(value)"
+    formatter.minimumFractionDigits = 0
+    formatter.maximumFractionDigits = 1
+    formatter.roundingMode = .down
+    let formatted = formatter.string(from: NSNumber(value: scaled)) ?? String(format: "%.1f", scaled)
+    return "\(formatted)\(suffix)"
+}
+
+private func resetRelativeText(_ date: Date) -> Text {
+    Text("Resets ") + Text(date, format: .relative(presentation: .numeric, unitsStyle: .abbreviated))
 }
 
 private func monthTitle(for identifier: String) -> String {
@@ -46,6 +75,41 @@ private func monthTitle(for identifier: String) -> String {
 private func shortModelName(_ model: String) -> String {
     let trimmed = model.replacingOccurrences(of: "claude-", with: "")
     return trimmed.isEmpty ? model : trimmed
+}
+
+private struct UpdatedAtView: View {
+    let date: Date
+
+    var body: some View {
+        Text("Updated \(WidgetUpdateTimeFormatter.formatUpdateTime(since: date))")
+            .font(.system(size: 9, weight: .medium))
+            .foregroundStyle(.secondary)
+            .monospacedDigit()
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
+    }
+}
+
+private struct AdaptiveRingGauge: View {
+    let value: Double
+    let ringColor: Color
+    let valueColor: Color
+
+    var body: some View {
+        GeometryReader { proxy in
+            let size = min(proxy.size.width, proxy.size.height)
+            let metrics = dsRingMetrics(for: size)
+            DSCircularRingGauge(
+                value: value,
+                color: ringColor,
+                lineWidth: metrics.lineWidth,
+                percentageFontSize: metrics.percentageFontSize,
+                valueColor: valueColor
+            )
+            .frame(width: size, height: size)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+    }
 }
 
 // MARK: - Timeline Provider
@@ -104,6 +168,7 @@ struct SmallWidgetView: View {
                     Text("\(Int(entry.usage.fiveHourUsage))%")
                         .font(.system(size: 16, weight: .bold, design: .monospaced))
                         .foregroundStyle(dsUsageColor(for: entry.usage.fiveHourUsage))
+                        .monospacedDigit()
                 }
 
                 DSProgressBar(
@@ -115,12 +180,14 @@ struct SmallWidgetView: View {
                     RefreshButton()
                     Spacer()
                     if let resetAt = entry.usage.fiveHourResetAt {
-                        Text(resetAt, style: .relative)
+                        resetRelativeText(resetAt)
                             .font(.system(size: 9, weight: .medium))
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
+                            .minimumScaleFactor(0.8)
                     }
                 }
+                UpdatedAtView(date: entry.usage.fetchedAt)
             }
             .dsCardStyle()
             .padding(6)
@@ -135,22 +202,27 @@ struct MediumWidgetView: View {
         if entry.usage.error != nil {
             ErrorView(error: entry.usage.error)
         } else {
-            HStack(spacing: 8) {
-                UsageCard(
-                    title: "5 Hour",
-                    subtitle: entry.usage.planTitle ?? "Usage Limit",
-                    value: entry.usage.fiveHourUsage,
-                    resetAt: entry.usage.fiveHourResetAt,
-                    showRefresh: true
-                )
+            VStack(spacing: 4) {
+                HStack(spacing: 8) {
+                    UsageCard(
+                        title: "5 Hour",
+                        subtitle: entry.usage.planTitle ?? "Usage Limit",
+                        value: entry.usage.fiveHourUsage,
+                        resetAt: entry.usage.fiveHourResetAt,
+                        showRefresh: true,
+                        updatedAt: nil
+                    )
 
-                UsageCard(
-                    title: "7 Day",
-                    subtitle: entry.usage.planTitle ?? "Usage Limit",
-                    value: entry.usage.sevenDayUsage,
-                    resetAt: entry.usage.sevenDayResetAt,
-                    showRefresh: false
-                )
+                    UsageCard(
+                        title: "7 Day",
+                        subtitle: entry.usage.planTitle ?? "Usage Limit",
+                        value: entry.usage.sevenDayUsage,
+                        resetAt: entry.usage.sevenDayResetAt,
+                        showRefresh: false,
+                        updatedAt: nil
+                    )
+                }
+                UpdatedAtView(date: entry.usage.fetchedAt)
             }
             .padding(6)
         }
@@ -163,6 +235,7 @@ struct UsageCard: View {
     let value: Double
     let resetAt: Date?
     let showRefresh: Bool
+    let updatedAt: Date?
 
     var body: some View {
         VStack(spacing: 8) {
@@ -178,6 +251,7 @@ struct UsageCard: View {
                 Text("\(Int(value))%")
                     .font(.system(size: 16, weight: .bold, design: .monospaced))
                     .foregroundStyle(dsUsageColor(for: value))
+                    .monospacedDigit()
             }
 
             DSProgressBar(value: value, color: dsUsageColor(for: value))
@@ -188,11 +262,15 @@ struct UsageCard: View {
                 }
                 Spacer()
                 if let resetAt = resetAt {
-                    Text(resetAt, style: .relative)
+                    resetRelativeText(resetAt)
                         .font(.system(size: 9, weight: .medium))
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
+                        .minimumScaleFactor(0.8)
                 }
+            }
+            if let updatedAt = updatedAt {
+                UpdatedAtView(date: updatedAt)
             }
         }
         .dsCardStyle()
@@ -231,6 +309,7 @@ struct LargeWidgetView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         Text(formattedCost(stats.totalCost))
                             .font(.system(size: 30, weight: .bold, design: .monospaced))
+                            .monospacedDigit()
 
                         TokenBreakdownView(stats: stats)
 
@@ -241,6 +320,9 @@ struct LargeWidgetView: View {
 
                     MiniGaugeStack(entry: entry)
                 }
+
+                UpdatedAtView(date: entry.monthly.fetchedAt)
+                    .padding(.top, -2)
             }
             .dsCardStyle(padding: 16)
             .padding(6)
@@ -272,6 +354,7 @@ private struct TokenStat: View {
                 .foregroundStyle(.secondary)
             Text(formattedTokens(value))
                 .font(.system(size: 12, weight: .semibold, design: .monospaced))
+                .monospacedDigit()
         }
     }
 }
@@ -293,6 +376,7 @@ private struct ModelSummaryView: View {
                     Text(formattedCost(model.totalCost))
                         .font(.system(size: 11, weight: .semibold, design: .monospaced))
                         .foregroundStyle(.secondary)
+                        .monospacedDigit()
                 }
             }
         }
@@ -327,9 +411,10 @@ private struct MiniGauge: View {
                 .foregroundStyle(.secondary)
             DSCircularRingGauge(
                 value: value,
-                color: dsUsageColor(for: value),
+                color: dsRingColor(for: value),
                 lineWidth: 6,
-                percentageFontSize: 10
+                percentageFontSize: 10,
+                valueColor: dsUsageColor(for: value)
             )
             .frame(width: 44, height: 44)
         }
@@ -473,19 +558,22 @@ struct SmallGaugeWidgetView: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
 
-                DSCircularRingGauge(
+                AdaptiveRingGauge(
                     value: entry.usage.fiveHourUsage,
-                    color: dsUsageColor(for: entry.usage.fiveHourUsage),
-                    lineWidth: 8,
-                    percentageFontSize: 14
+                    ringColor: dsRingColor(for: entry.usage.fiveHourUsage),
+                    valueColor: dsUsageColor(for: entry.usage.fiveHourUsage)
                 )
+                .frame(height: 72)
 
                 if let resetAt = entry.usage.fiveHourResetAt {
-                    Text(resetAt, style: .relative)
+                    resetRelativeText(resetAt)
                         .font(.system(size: 9, weight: .medium))
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
+                        .minimumScaleFactor(0.8)
                 }
+
+                UpdatedAtView(date: entry.usage.fetchedAt)
             }
             .dsCardStyle()
             .padding(6)
@@ -500,22 +588,27 @@ struct MediumGaugeWidgetView: View {
         if entry.usage.error != nil {
             ErrorView(error: entry.usage.error)
         } else {
-            HStack(spacing: 8) {
-                GaugeCard(
-                    title: "5 Hour",
-                    subtitle: entry.usage.planTitle ?? "Usage Limit",
-                    value: entry.usage.fiveHourUsage,
-                    resetAt: entry.usage.fiveHourResetAt,
-                    showRefresh: true
-                )
+            VStack(spacing: 4) {
+                HStack(spacing: 8) {
+                    GaugeCard(
+                        title: "5 Hour",
+                        subtitle: entry.usage.planTitle ?? "Usage Limit",
+                        value: entry.usage.fiveHourUsage,
+                        resetAt: entry.usage.fiveHourResetAt,
+                        showRefresh: true,
+                        updatedAt: nil
+                    )
 
-                GaugeCard(
-                    title: "7 Day",
-                    subtitle: entry.usage.planTitle ?? "Usage Limit",
-                    value: entry.usage.sevenDayUsage,
-                    resetAt: entry.usage.sevenDayResetAt,
-                    showRefresh: false
-                )
+                    GaugeCard(
+                        title: "7 Day",
+                        subtitle: entry.usage.planTitle ?? "Usage Limit",
+                        value: entry.usage.sevenDayUsage,
+                        resetAt: entry.usage.sevenDayResetAt,
+                        showRefresh: false,
+                        updatedAt: nil
+                    )
+                }
+                UpdatedAtView(date: entry.usage.fetchedAt)
             }
             .padding(6)
         }
@@ -528,6 +621,7 @@ struct GaugeCard: View {
     let value: Double
     let resetAt: Date?
     let showRefresh: Bool
+    let updatedAt: Date?
 
     var body: some View {
         VStack(spacing: 6) {
@@ -545,18 +639,22 @@ struct GaugeCard: View {
                 }
             }
 
-            DSCircularRingGauge(
+            AdaptiveRingGauge(
                 value: value,
-                color: dsUsageColor(for: value),
-                lineWidth: 8,
-                percentageFontSize: 14
+                ringColor: dsRingColor(for: value),
+                valueColor: dsUsageColor(for: value)
             )
+            .frame(height: 72)
 
             if let resetAt = resetAt {
-                Text(resetAt, style: .relative)
+                resetRelativeText(resetAt)
                     .font(.system(size: 9, weight: .medium))
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+            }
+            if let updatedAt = updatedAt {
+                UpdatedAtView(date: updatedAt)
             }
         }
         .dsCardStyle()

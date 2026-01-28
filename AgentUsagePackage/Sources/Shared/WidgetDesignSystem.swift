@@ -4,9 +4,15 @@ import SwiftUI
 
 public extension Color {
     // Usage status colors (shared across all widgets)
-    static let dsGreen = Color.green
-    static let dsOrange = Color.orange
-    static let dsRed = Color.red
+    static var dsGreen: Color {
+        UsageColorSettings.loadStatusGreenColor(defaultColor: .green)
+    }
+    static var dsOrange: Color {
+        UsageColorSettings.loadStatusOrangeColor(defaultColor: .orange)
+    }
+    static var dsRed: Color {
+        UsageColorSettings.loadStatusRedColor(defaultColor: .red)
+    }
 
     // Card styling colors
     static let dsCardBackground = Color(nsColor: .controlBackgroundColor).opacity(0.4)
@@ -25,6 +31,30 @@ public func dsUsageColor(for value: Double) -> Color {
     default:
         return .dsRed
     }
+}
+
+public func dsRingColor(for value: Double) -> Color {
+    if UsageColorSettings.loadRingUseStatus() {
+        return dsUsageColor(for: value)
+    }
+    return UsageColorSettings.loadRingColor(defaultColor: .accentColor)
+}
+
+public struct DSRingMetrics {
+    public let lineWidth: CGFloat
+    public let percentageFontSize: CGFloat
+
+    public init(lineWidth: CGFloat, percentageFontSize: CGFloat) {
+        self.lineWidth = lineWidth
+        self.percentageFontSize = percentageFontSize
+    }
+}
+
+public func dsRingMetrics(for size: CGFloat) -> DSRingMetrics {
+    let clamped = max(28, size)
+    let lineWidth = max(4, clamped * 0.12)
+    let fontSize = max(10, clamped * 0.28)
+    return DSRingMetrics(lineWidth: lineWidth, percentageFontSize: fontSize)
 }
 
 // MARK: - Card Background Modifier
@@ -91,14 +121,22 @@ public struct DSProgressBar: View {
 public struct DSCircularRingGauge: View {
     public let value: Double
     public let color: Color
+    public let valueColor: Color
     public let lineWidth: CGFloat
     public let percentageFontSize: CGFloat
 
-    public init(value: Double, color: Color, lineWidth: CGFloat = 8, percentageFontSize: CGFloat = 14) {
+    public init(
+        value: Double,
+        color: Color,
+        lineWidth: CGFloat = 8,
+        percentageFontSize: CGFloat = 14,
+        valueColor: Color? = nil
+    ) {
         self.value = value
         self.color = color
         self.lineWidth = lineWidth
         self.percentageFontSize = percentageFontSize
+        self.valueColor = valueColor ?? color
     }
 
     public var body: some View {
@@ -117,7 +155,8 @@ public struct DSCircularRingGauge: View {
             // Percentage text (color-coded, not white)
             Text("\(Int(value))%")
                 .font(.system(size: percentageFontSize, weight: .bold, design: .monospaced))
-                .foregroundStyle(color)
+                .foregroundStyle(valueColor)
+                .monospacedDigit()
         }
     }
 }

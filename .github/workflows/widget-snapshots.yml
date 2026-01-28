@@ -2,10 +2,24 @@ name: Widget Snapshots
 
 on:
   pull_request:
+    paths:
+      - "WidgetSnapshotTests/**"
+      - "AgentUsageWidgetExtension/**"
+      - "CodexUsageWidgetExtension/**"
+      - "AgentUsagePackage/**"
+      - "Config/**"
+      - "AgentUsage.xcodeproj/**"
+      - "AgentUsage.xcworkspace/**"
+      - ".github/workflows/widget-snapshots.yml"
+  workflow_dispatch:
 
 permissions:
   contents: read
   pull-requests: write
+
+concurrency:
+  group: widget-snapshots-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   snapshots:
@@ -15,7 +29,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ github.head_ref }}
-          fetch-depth: 0
 
       - name: Generate widget snapshots
         run: |
