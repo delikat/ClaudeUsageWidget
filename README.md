@@ -1,5 +1,7 @@
 # Claude Usage Widget
 
+[![CI](https://github.com/delikat/ClaudeUsageWidget/actions/workflows/ci.yml/badge.svg)](https://github.com/delikat/ClaudeUsageWidget/actions/workflows/ci.yml)
+
 Track Claude usage directly on your macOS desktop with native widgets.
 
 ## Features
