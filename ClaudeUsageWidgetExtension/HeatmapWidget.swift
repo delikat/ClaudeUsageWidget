@@ -4,13 +4,65 @@ import Shared
 
 // MARK: - Heatmap Colors
 
-extension Color {
-    // Heatmap intensity colors (light to dark green)
-    static let heatmapLevel0 = Color(white: 0.2)  // No activity - dark gray
-    static let heatmapLevel1 = Color(red: 0.0, green: 0.4, blue: 0.2)
-    static let heatmapLevel2 = Color(red: 0.0, green: 0.5, blue: 0.3)
-    static let heatmapLevel3 = Color(red: 0.0, green: 0.65, blue: 0.4)
-    static let heatmapLevel4 = Color(red: 0.0, green: 0.8, blue: 0.5)
+enum HeatmapLevel: Int, CaseIterable {
+    case none = 0
+    case firstQuartile = 1
+    case secondQuartile = 2
+    case thirdQuartile = 3
+    case fourthQuartile = 4
+
+    var lightColor: Color {
+        switch self {
+        case .none:
+            return Color(white: 0.85)
+        case .firstQuartile:
+            return Color(red: 0.0, green: 0.4, blue: 0.2)
+        case .secondQuartile:
+            return Color(red: 0.0, green: 0.5, blue: 0.3)
+        case .thirdQuartile:
+            return Color(red: 0.0, green: 0.65, blue: 0.4)
+        case .fourthQuartile:
+            return Color(red: 0.0, green: 0.8, blue: 0.5)
+        }
+    }
+
+    var darkColor: Color {
+        switch self {
+        case .none:
+            return Color(white: 0.25)
+        case .firstQuartile:
+            return Color(red: 0.0, green: 0.4, blue: 0.2)
+        case .secondQuartile:
+            return Color(red: 0.0, green: 0.5, blue: 0.3)
+        case .thirdQuartile:
+            return Color(red: 0.0, green: 0.65, blue: 0.4)
+        case .fourthQuartile:
+            return Color(red: 0.0, green: 0.8, blue: 0.5)
+        }
+    }
+
+    var accentedOpacity: Double {
+        switch self {
+        case .none:
+            return 0.1
+        case .firstQuartile:
+            return 0.3
+        case .secondQuartile:
+            return 0.5
+        case .thirdQuartile:
+            return 0.7
+        case .fourthQuartile:
+            return 1.0
+        }
+    }
+
+    @MainActor
+    func color(for renderingMode: WidgetRenderingMode, colorScheme: ColorScheme) -> Color {
+        if renderingMode == .accented {
+            return Color.white.opacity(accentedOpacity)
+        }
+        return colorScheme == .dark ? darkColor : lightColor
+    }
 }
 
 // MARK: - Heatmap Timeline Provider
@@ -45,33 +97,13 @@ struct HeatmapEntry: TimelineEntry {
 // MARK: - Heatmap Cell View
 
 struct HeatmapCell: View {
-    let tokens: Int
-    let maxTokens: Int
-
-    private var intensity: Double {
-        guard maxTokens > 0 else { return 0 }
-        return Double(tokens) / Double(maxTokens)
-    }
-
-    private var cellColor: Color {
-        if tokens == 0 {
-            return .heatmapLevel0
-        }
-        switch intensity {
-        case 0..<0.25:
-            return .heatmapLevel1
-        case 0.25..<0.5:
-            return .heatmapLevel2
-        case 0.5..<0.75:
-            return .heatmapLevel3
-        default:
-            return .heatmapLevel4
-        }
-    }
+    let level: HeatmapLevel
+    @Environment(\.widgetRenderingMode) private var renderingMode
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         RoundedRectangle(cornerRadius: 2)
-            .fill(cellColor)
+            .fill(level.color(for: renderingMode, colorScheme: colorScheme))
     }
 }
 
@@ -136,8 +168,23 @@ struct HeatmapGridView: View {
         return weeks
     }
 
+    private var usageThresholds: (Int, Int, Int)? {
+        let values = history.entries.map(\.totalTokens).filter { $0 > 0 }.sorted()
+        guard !values.isEmpty else { return nil }
+        let q1 = percentile(values, percentile: 0.25)
+        let q2 = percentile(values, percentile: 0.5)
+        let q3 = percentile(values, percentile: 0.75)
+        return (q1, q2, q3)
+    }
+
+    private func percentile(_ values: [Int], percentile: Double) -> Int {
+        guard !values.isEmpty else { return 0 }
+        let index = Int((Double(values.count - 1) * percentile).rounded(.down))
+        return values[min(max(index, 0), values.count - 1)]
+    }
+
     var body: some View {
-        let maxTokens = history.maxDailyTokens
+        let thresholds = usageThresholds
 
         HStack(spacing: 3) {
             // Day labels column (Sun-Sat)
@@ -158,8 +205,7 @@ struct HeatmapGridView: View {
                         ForEach(0..<daysPerWeek, id: \.self) { dayIndex in
                             let usage = gridData[weekIndex][dayIndex]
                             HeatmapCell(
-                                tokens: usage?.totalTokens ?? 0,
-                                maxTokens: maxTokens
+                                level: level(for: usage?.totalTokens ?? 0, thresholds: thresholds)
                             )
                             .frame(width: 12, height: 12)
                         }
@@ -168,20 +214,32 @@ struct HeatmapGridView: View {
             }
         }
     }
+
+    private func level(for tokens: Int, thresholds: (Int, Int, Int)?) -> HeatmapLevel {
+        guard tokens > 0 else { return .none }
+        guard let thresholds else { return .firstQuartile }
+        if tokens <= thresholds.0 { return .firstQuartile }
+        if tokens <= thresholds.1 { return .secondQuartile }
+        if tokens <= thresholds.2 { return .thirdQuartile }
+        return .fourthQuartile
+    }
 }
 
 // MARK: - Heatmap Legend
 
 struct HeatmapLegend: View {
+    @Environment(\.widgetRenderingMode) private var renderingMode
+    @Environment(\.colorScheme) private var colorScheme
+
     var body: some View {
         HStack(spacing: 4) {
             Text("Less")
                 .font(.system(size: 8, weight: .medium))
                 .foregroundStyle(.tertiary)
 
-            ForEach([Color.heatmapLevel0, .heatmapLevel1, .heatmapLevel2, .heatmapLevel3, .heatmapLevel4], id: \.self) { color in
+            ForEach(HeatmapLevel.allCases, id: \.self) { level in
                 RoundedRectangle(cornerRadius: 2)
-                    .fill(color)
+                    .fill(level.color(for: renderingMode, colorScheme: colorScheme))
                     .frame(width: 10, height: 10)
             }
 
@@ -189,6 +247,19 @@ struct HeatmapLegend: View {
                 .font(.system(size: 8, weight: .medium))
                 .foregroundStyle(.tertiary)
         }
+    }
+}
+
+private struct UpdatedAtView: View {
+    let date: Date
+
+    var body: some View {
+        Text("Updated \(WidgetUpdateTimeFormatter.formatUpdateTime(since: date))")
+            .font(.system(size: 8, weight: .medium))
+            .foregroundStyle(.tertiary)
+            .monospacedDigit()
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
     }
 }
 
@@ -211,9 +282,9 @@ struct HeatmapStats: View {
 
     private func formatTokens(_ tokens: Int) -> String {
         if tokens >= 1_000_000 {
-            return String(format: "%.1fM", Double(tokens) / 1_000_000)
+            return String(format: "%.1fm", Double(tokens) / 1_000_000)
         } else if tokens >= 1_000 {
-            return String(format: "%.0fK", Double(tokens) / 1_000)
+            return String(format: "%.0fk", Double(tokens) / 1_000)
         }
         return "\(tokens)"
     }
@@ -226,6 +297,7 @@ struct HeatmapStats: View {
                     .foregroundStyle(.secondary)
                 Text(formatTokens(claudeTokens))
                     .font(.system(size: 11, weight: .bold, design: .monospaced))
+                    .monospacedDigit()
             }
 
             VStack(alignment: .leading, spacing: 2) {
@@ -234,6 +306,7 @@ struct HeatmapStats: View {
                     .foregroundStyle(.secondary)
                 Text(formatTokens(codexTokens))
                     .font(.system(size: 11, weight: .bold, design: .monospaced))
+                    .monospacedDigit()
             }
 
             Spacer()
@@ -245,6 +318,7 @@ struct HeatmapStats: View {
                 Text(formatTokens(totalTokens))
                     .font(.system(size: 11, weight: .bold, design: .monospaced))
                     .foregroundStyle(Color.dsGreen)
+                    .monospacedDigit()
             }
         }
     }
@@ -278,6 +352,10 @@ struct LargeHeatmapWidgetView: View {
 
             // Legend
             HeatmapLegend()
+
+            if let fetchedAt = entry.history.fetchedAt {
+                UpdatedAtView(date: fetchedAt)
+            }
         }
         .dsCardStyle(padding: 16)
         .padding(6)

@@ -340,7 +340,7 @@ private struct SnapshotFixtures {
             entries.append(DailyUsage(date: dateString, claudeTokens: claudeTokens, codexTokens: codexTokens))
         }
 
-        return UsageHistory(entries: entries)
+        return UsageHistory(entries: entries, fetchedAt: now)
     }
 }
 
