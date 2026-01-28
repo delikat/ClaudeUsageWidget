@@ -20,7 +20,7 @@ jobs:
       - name: Generate widget snapshots
         run: |
           set -o pipefail
-          xcodebuild -workspace ClaudeUsageWidget.xcworkspace \
+          xcodebuild -workspace AgentUsage.xcworkspace \
             -scheme WidgetSnapshotTests \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
