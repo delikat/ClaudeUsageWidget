@@ -15,8 +15,17 @@ struct ClaudeUsageWidgetApp: App {
 
 struct SettingsView: View {
     @State private var startAtLogin: Bool = LaunchAgentManager.shared.isEnabled
+    @State private var automaticallyCheckForUpdates: Bool = UpdateManager.shared.automaticallyChecks
     @State private var showError: Bool = false
     @State private var errorMessage: String = ""
+
+    private var appVersion: String {
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unknown"
+    }
+
+    private var buildNumber: String {
+        Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"
+    }
 
     var body: some View {
         Form {
@@ -31,9 +40,27 @@ struct SettingsView: View {
                         startAtLogin = !newValue
                     }
                 }
+
+            Divider()
+
+            HStack {
+                Text("Version")
+                Spacer()
+                Text("v\(appVersion) (\(buildNumber))")
+                    .foregroundColor(.secondary)
+            }
+
+            Button("Check for Updates...") {
+                UpdateManager.shared.checkForUpdates()
+            }
+
+            Toggle("Automatically check for updates", isOn: $automaticallyCheckForUpdates)
+                .onChange(of: automaticallyCheckForUpdates) { _, newValue in
+                    UpdateManager.shared.automaticallyChecks = newValue
+                }
         }
         .padding(20)
-        .frame(width: 300, height: 100)
+        .frame(width: 350, height: 180)
         .alert("Error", isPresented: $showError) {
             Button("OK") { }
         } message: {
@@ -50,8 +77,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var claudeMonthlyNotificationObserver: Any?
     private var codexMonthlyNotificationObserver: Any?
 
+    // Keep strong reference to update manager
+    private let updateManager = UpdateManager.shared
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         AppLog.app.info("ClaudeUsageWidget: App launched")
+
+        // Initialize Sparkle updates (already starts via shared singleton)
+        _ = updateManager
 
         // Request notification permission for usage alerts
         NotificationManager.shared.requestPermission()
