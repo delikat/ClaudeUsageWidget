@@ -1,0 +1,122 @@
+name: Generate Appcast
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Release tag to generate appcast for (e.g., v1.0.0). If empty, uses latest."
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  generate-appcast:
+    runs-on: macos-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Determine Release Tag
+        id: release_tag
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            if [ -n "${{ inputs.release_tag }}" ]; then
+              TAG="${{ inputs.release_tag }}"
+            else
+              TAG=$(gh api repos/${{ github.repository }}/releases/latest --jq '.tag_name')
+            fi
+          else
+            TAG="${{ github.event.release.tag_name }}"
+          fi
+          echo "tag=${TAG}" >> $GITHUB_OUTPUT
+          echo "Processing release: ${TAG}"
+
+      - name: Checkout gh-pages
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          fetch-depth: 0
+          token: ${{ secrets.RELEASE_TOKEN }}
+
+      - name: Download Sparkle Tools
+        run: |
+          set -euo pipefail
+          curl -L -o sparkle.tar.xz \
+            https://github.com/sparkle-project/Sparkle/releases/download/2.8.1/Sparkle-2.8.1.tar.xz
+          tar -xf sparkle.tar.xz
+          chmod +x bin/generate_appcast
+
+      - name: Download Release Asset
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          mkdir -p releases
+
+          gh release download "${{ steps.release_tag.outputs.tag }}" \
+            -p "ClaudeUsageWidget-*.zip" \
+            -D releases/ \
+            --clobber
+
+          # Verify download
+          ZIP_FILE=$(ls releases/ClaudeUsageWidget-*.zip 2>/dev/null | head -1)
+          if [ -z "$ZIP_FILE" ]; then
+            echo "Error: No release zip found"
+            exit 1
+          fi
+          echo "Downloaded: $ZIP_FILE"
+
+      - name: Extract Version Info
+        run: |
+          set -euo pipefail
+          ZIP_FILE=$(ls releases/ClaudeUsageWidget-*.zip | head -1)
+          unzip -q "$ZIP_FILE" -d releases/temp
+
+          APP_PATH=$(find releases/temp -name "*.app" -type d | head -1)
+          VERSION=$(defaults read "$APP_PATH/Contents/Info.plist" CFBundleShortVersionString)
+          BUILD=$(defaults read "$APP_PATH/Contents/Info.plist" CFBundleVersion)
+
+          echo "APP_VERSION=$VERSION" >> $GITHUB_ENV
+          echo "APP_BUILD=$BUILD" >> $GITHUB_ENV
+
+          rm -rf releases/temp
+          echo "Version: $VERSION (build $BUILD)"
+
+      - name: Generate Appcast
+        env:
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+
+          # Pipe private key via stdin for security
+          echo "$SPARKLE_PRIVATE_KEY" | ./bin/generate_appcast \
+            --ed-key-file - \
+            --download-url-prefix "https://github.com/${{ github.repository }}/releases/download/${{ steps.release_tag.outputs.tag }}/" \
+            --maximum-deltas 3 \
+            --maximum-versions 5 \
+            releases/
+
+          mv releases/appcast.xml ./
+          echo "Appcast generated!"
+          cat appcast.xml
+
+      - name: Commit and Push
+        run: |
+          set -euo pipefail
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add appcast.xml releases/
+
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+
+          git commit -m "Update appcast for ${{ steps.release_tag.outputs.tag }}"
+          git push
