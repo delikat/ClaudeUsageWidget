@@ -6,5 +6,7 @@
 	<array>
 		<string>HN6S8N7886.group.com.delikat.agentusagewidget</string>
 	</array>
+	<key>com.apple.security.network.client</key>
+	<true/>
 </dict>
 </plist>

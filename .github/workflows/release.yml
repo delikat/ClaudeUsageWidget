@@ -107,8 +107,62 @@ jobs:
 
           shopt -s nullglob
 
+          # Sign Sparkle framework components in correct order
+          # IMPORTANT: Sign XPC Services first, then framework, then main app
+          # Use Versions/Current symlink to handle version changes (A, B, etc.)
+          SPARKLE_PATH="$APP_PATH/Contents/Frameworks/Sparkle.framework"
+          if [ -d "$SPARKLE_PATH" ]; then
+            echo "Signing Sparkle framework components..."
+
+            # Resolve the actual version directory via Current symlink
+            SPARKLE_CURRENT="$SPARKLE_PATH/Versions/Current"
+            if [ ! -L "$SPARKLE_CURRENT" ]; then
+              echo "Warning: Sparkle Versions/Current symlink not found"
+            fi
+
+            # Sign XPC Services (preserve entitlements to avoid breaking sandboxed updates)
+            if [ -d "$SPARKLE_CURRENT/XPCServices/Installer.xpc" ]; then
+              echo "Signing Installer.xpc..."
+              codesign --force --options runtime --timestamp \
+                --preserve-metadata=entitlements,requirements,flags \
+                --sign "$SIGNING_IDENTITY" "$SPARKLE_CURRENT/XPCServices/Installer.xpc"
+            fi
+
+            if [ -d "$SPARKLE_CURRENT/XPCServices/Downloader.xpc" ]; then
+              echo "Signing Downloader.xpc..."
+              codesign --force --options runtime --timestamp \
+                --preserve-metadata=entitlements,requirements,flags \
+                --sign "$SIGNING_IDENTITY" "$SPARKLE_CURRENT/XPCServices/Downloader.xpc"
+            fi
+
+            # Sign Autoupdate helper
+            if [ -f "$SPARKLE_CURRENT/Autoupdate" ]; then
+              echo "Signing Autoupdate..."
+              codesign --force --options runtime --timestamp \
+                --preserve-metadata=entitlements,requirements,flags \
+                --sign "$SIGNING_IDENTITY" "$SPARKLE_CURRENT/Autoupdate"
+            fi
+
+            # Sign Updater.app
+            if [ -d "$SPARKLE_CURRENT/Updater.app" ]; then
+              echo "Signing Updater.app..."
+              codesign --force --options runtime --timestamp \
+                --preserve-metadata=entitlements,requirements,flags \
+                --sign "$SIGNING_IDENTITY" "$SPARKLE_CURRENT/Updater.app"
+            fi
+
+            # Sign Sparkle framework itself
+            echo "Signing Sparkle.framework..."
+            codesign --force --options runtime --timestamp --sign "$SIGNING_IDENTITY" "$SPARKLE_PATH"
+          fi
+
+          # Sign other frameworks (Shared.framework, etc.)
           if [ -d "$APP_PATH/Contents/Frameworks" ]; then
             for framework in "$APP_PATH/Contents/Frameworks/"*.framework; do
+              # Skip Sparkle (already signed above)
+              if [[ "$(basename "$framework")" == "Sparkle.framework" ]]; then
+                continue
+              fi
               codesign --force --options runtime --timestamp --sign "$SIGNING_IDENTITY" "$framework"
             done
           fi

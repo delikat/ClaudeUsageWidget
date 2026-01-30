@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		8B90D1482DEDD44A00FBD189 /* Shared in Frameworks */ = {isa = PBXBuildFile; productRef = 8B90D1472DEDD44A00FBD189 /* Shared */; };
+		EEEE00112233445500000001 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = EEEE00112233445500000002 /* Sparkle */; };
 		AABB0011223344550000000C /* Shared in Frameworks */ = {isa = PBXBuildFile; productRef = AABB0011223344550000000B /* Shared */; };
 		AABB0011223344550000000D /* AgentUsageWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = AABB00112233445500000099 /* AgentUsageWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		CCDD0011223344550000000C /* Shared in Frameworks */ = {isa = PBXBuildFile; productRef = CCDD0011223344550000000B /* Shared */; };
@@ -132,6 +133,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				8B90D1482DEDD44A00FBD189 /* Shared in Frameworks */,
+				EEEE00112233445500000001 /* Sparkle in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -227,6 +229,7 @@
 			name = AgentUsageWidget;
 			packageProductDependencies = (
 				8B90D1472DEDD44A00FBD189 /* Shared */,
+				EEEE00112233445500000002 /* Sparkle */,
 			);
 			productName = AgentUsageWidget;
 			productReference = 8BC2655C2DEDD3F400F279A4 /* AgentUsageWidget.app */;
@@ -366,6 +369,9 @@
 			minimizedProjectReferenceProxies = 1;
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 8BC2655D2DEDD3F400F279A4 /* Products */;
+			packageReferences = (
+				EEEE00112233445500000003 /* XCRemoteSwiftPackageReference "Sparkle" */,
+			);
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -773,6 +779,17 @@
 		};
 /* End XCConfigurationList section */
 
+/* Begin XCRemoteSwiftPackageReference section */
+		EEEE00112233445500000003 /* XCRemoteSwiftPackageReference "Sparkle" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sparkle-project/Sparkle";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.8.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
 /* Begin XCSwiftPackageProductDependency section */
 		8B90D1472DEDD44A00FBD189 /* Shared */ = {
 			isa = XCSwiftPackageProductDependency;
@@ -789,6 +806,11 @@
 		DDDD0011223344550000000A /* Shared */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = Shared;
+		};
+		EEEE00112233445500000002 /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = EEEE00112233445500000003 /* XCRemoteSwiftPackageReference "Sparkle" */;
+			productName = Sparkle;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
