@@ -115,8 +115,8 @@ public struct JSONLParser {
         return entries
     }
 
-    /// Parse a Codex JSONL file
-    /// Codex format may vary - try to extract timestamp and content
+    /// Parse a Codex JSONL file by extracting actual token counts from
+    /// `event_msg` lines with `payload.type == "token_count"`.
     private static func parseCodexJSONLFile(at url: URL) -> [ConversationEntry] {
         guard let data = try? Data(contentsOf: url),
               let content = String(data: data, encoding: .utf8) else {
@@ -132,30 +132,67 @@ public struct JSONLParser {
         let fallbackFormatter = ISO8601DateFormatter()
         fallbackFormatter.formatOptions = [.withInternetDateTime]
 
+        var prevTotalInput = 0
+        var prevTotalCached = 0
+        var prevTotalOutput = 0
+
         for line in lines where !line.isEmpty {
             guard let lineData = line.data(using: .utf8),
                   let json = try? JSONSerialization.jsonObject(with: lineData) as? [String: Any] else {
                 continue
             }
 
-            // Try to find timestamp in various possible fields
-            let timestampStr = (json["timestamp"] as? String)
-                ?? (json["createdAt"] as? String)
-                ?? (json["created_at"] as? String)
-
-            guard let tsStr = timestampStr,
+            guard let eventType = json["type"] as? String, eventType == "event_msg",
+                  let payload = json["payload"] as? [String: Any],
+                  let payloadType = payload["type"] as? String, payloadType == "token_count",
+                  let tsStr = json["timestamp"] as? String,
                   let timestamp = dateFormatter.date(from: tsStr) ?? fallbackFormatter.date(from: tsStr) else {
                 continue
             }
 
-            // Estimate tokens from message content
-            let tokens = estimateTokensFromCodexMessage(json)
-            if tokens > 0 {
-                entries.append(ConversationEntry(timestamp: timestamp, estimatedTokens: tokens, provider: .codex))
+            let info = payload["info"] as? [String: Any]
+            let lastUsage = info?["last_token_usage"] as? [String: Any]
+            let cumUsage = info?["total_token_usage"] as? [String: Any]
+
+            var dInput = 0, dCached = 0, dOutput = 0
+            if let last = lastUsage {
+                dInput = intValueFromAny(last["input_tokens"]) ?? 0
+                dCached = intValueFromAny(last["cached_input_tokens"] ?? last["cache_read_input_tokens"]) ?? 0
+                dOutput = intValueFromAny(last["output_tokens"]) ?? 0
+            } else if let cum = cumUsage {
+                let curInput = intValueFromAny(cum["input_tokens"]) ?? 0
+                let curCached = intValueFromAny(cum["cached_input_tokens"] ?? cum["cache_read_input_tokens"]) ?? 0
+                let curOutput = intValueFromAny(cum["output_tokens"]) ?? 0
+                dInput = max(curInput - prevTotalInput, 0)
+                dCached = max(curCached - prevTotalCached, 0)
+                dOutput = max(curOutput - prevTotalOutput, 0)
             }
+
+            if let cum = cumUsage {
+                prevTotalInput = intValueFromAny(cum["input_tokens"]) ?? prevTotalInput
+                prevTotalCached = intValueFromAny(cum["cached_input_tokens"] ?? cum["cache_read_input_tokens"]) ?? prevTotalCached
+                prevTotalOutput = intValueFromAny(cum["output_tokens"]) ?? prevTotalOutput
+            } else {
+                prevTotalInput += dInput
+                prevTotalCached += dCached
+                prevTotalOutput += dOutput
+            }
+
+            // cached is a subset of input in Codex, so don't add it again
+            let totalTokens = dInput + dOutput
+            guard totalTokens > 0 else { continue }
+
+            entries.append(ConversationEntry(timestamp: timestamp, estimatedTokens: totalTokens, provider: .codex))
         }
 
         return entries
+    }
+
+    private static func intValueFromAny(_ value: Any?) -> Int? {
+        if let intValue = value as? Int { return intValue }
+        if let doubleValue = value as? Double { return Int(doubleValue) }
+        if let stringValue = value as? String { return Int(stringValue) }
+        return nil
     }
 
     /// Estimate tokens from Claude message JSON
@@ -181,26 +218,6 @@ public struct JSONLParser {
         return max(1, totalChars / 4)
     }
 
-    /// Estimate tokens from Codex message JSON
-    private static func estimateTokensFromCodexMessage(_ json: [String: Any]) -> Int {
-        var totalChars = 0
-
-        // Try various content fields
-        if let content = json["content"] as? String {
-            totalChars += content.count
-        } else if let message = json["message"] as? String {
-            totalChars += message.count
-        } else if let text = json["text"] as? String {
-            totalChars += text.count
-        } else if let message = json["message"] as? [String: Any] {
-            if let content = message["content"] as? String {
-                totalChars += content.count
-            }
-        }
-
-        // Approximate tokens: ~4 characters per token
-        return max(0, totalChars / 4)
-    }
 }
 
 /// Aggregator to convert conversation entries into daily usage
