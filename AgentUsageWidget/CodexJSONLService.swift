@@ -82,6 +82,19 @@ final class CodexJSONLService: Sendable {
         return CachedMonthlyUsage(months: stats, fetchedAt: Date(), error: hadReadError ? .readError : nil)
     }
 
+    /// Parses a single Codex session file.
+    ///
+    /// Each file contains structured events:
+    /// - `session_meta`: has `payload.id` (session ID for dedup)
+    /// - `turn_context`: has `payload.model` (e.g. "gpt-5.2-codex")
+    /// - `event_msg` with `payload.type == "token_count"`: has
+    ///   `payload.info.total_token_usage` (cumulative per-turn) and
+    ///   `payload.info.last_token_usage` (per-call delta)
+    ///
+    /// We sum `last_token_usage` from every token_count event to get
+    /// session totals. When `last_token_usage` is absent we compute
+    /// the delta from `total_token_usage - previousTotals`.
+    /// This matches the approach used by @ccusage/codex.
     private func parseFile(
         fileURL: URL,
         allowedMonths: Set<String>,
@@ -90,142 +103,105 @@ final class CodexJSONLService: Sendable {
         let handle = try FileHandle(forReadingFrom: fileURL)
         defer { try? handle.close() }
 
-        var samples: [MonthlyUsageSample] = []
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+
+        var sessionId: String?
+        var model: String?
+        var latestTimestamp: Date?
+
+        // Running totals for the session
+        var totalInput = 0
+        var totalCached = 0
+        var totalOutput = 0
+
+        // Track previous cumulative totals for delta fallback
+        var prevTotalInput = 0
+        var prevTotalCached = 0
+        var prevTotalOutput = 0
 
         for try await line in handle.bytes.lines {
             guard !line.isEmpty, let data = line.data(using: .utf8) else { continue }
             guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { continue }
+            guard let payload = json["payload"] as? [String: Any] else { continue }
 
-            let sample = parseSample(from: json, allowedMonths: allowedMonths)
-            let dedupeKey = JSONLDedupe.extractDedupeKey(from: json)
-            guard let accepted = JSONLDedupe.acceptSample(
-                sample,
-                dedupeKey: dedupeKey,
-                seenKeys: &seenRequestIds
-            ) else { continue }
-            samples.append(accepted)
+            let eventType = json["type"] as? String
+
+            if eventType == "session_meta" {
+                sessionId = payload["id"] as? String
+            }
+
+            if eventType == "turn_context", model == nil {
+                model = payload["model"] as? String
+            }
+
+            if eventType == "event_msg",
+               let payloadType = payload["type"] as? String,
+               payloadType == "token_count"
+            {
+                let info = payload["info"] as? [String: Any]
+                let lastUsage = info?["last_token_usage"] as? [String: Any]
+                let cumUsage = info?["total_token_usage"] as? [String: Any]
+
+                // Prefer last_token_usage (explicit delta); fall back to
+                // computing delta from cumulative totals.
+                var dInput = 0, dCached = 0, dOutput = 0
+                if let last = lastUsage {
+                    dInput = intValue(from: last["input_tokens"]) ?? 0
+                    dCached = intValue(from: last["cached_input_tokens"]) ?? 0
+                    dOutput = intValue(from: last["output_tokens"]) ?? 0
+                } else if let cum = cumUsage {
+                    let curInput = intValue(from: cum["input_tokens"]) ?? 0
+                    let curCached = intValue(from: cum["cached_input_tokens"]) ?? 0
+                    let curOutput = intValue(from: cum["output_tokens"]) ?? 0
+                    dInput = max(curInput - prevTotalInput, 0)
+                    dCached = max(curCached - prevTotalCached, 0)
+                    dOutput = max(curOutput - prevTotalOutput, 0)
+                }
+
+                // Update previous cumulative totals
+                if let cum = cumUsage {
+                    prevTotalInput = intValue(from: cum["input_tokens"]) ?? prevTotalInput
+                    prevTotalCached = intValue(from: cum["cached_input_tokens"]) ?? prevTotalCached
+                    prevTotalOutput = intValue(from: cum["output_tokens"]) ?? prevTotalOutput
+                }
+
+                // Skip zero-delta events
+                guard dInput > 0 || dCached > 0 || dOutput > 0 else { continue }
+
+                totalInput += dInput
+                totalCached += dCached
+                totalOutput += dOutput
+
+                if let ts = json["timestamp"] as? String {
+                    latestTimestamp = formatter.date(from: ts)
+                }
+            }
         }
 
-        return samples
-    }
+        guard totalInput > 0 || totalCached > 0 || totalOutput > 0,
+              let date = latestTimestamp else {
+            return []
+        }
 
-    private func parseSample(from json: [String: Any], allowedMonths: Set<String>) -> MonthlyUsageSample? {
-        guard let date = extractTimestamp(from: json) else { return nil }
         let month = MonthlyStats.monthIdentifier(for: date)
-        guard allowedMonths.contains(month) else { return nil }
+        guard allowedMonths.contains(month) else { return [] }
 
-        let model = extractModel(from: json) ?? "unknown"
-        let usage = extractUsage(from: json)
+        // Deduplicate by session ID (fall back to filename)
+        let dedupeKey = sessionId ?? fileURL.deletingPathExtension().lastPathComponent
+        guard !seenRequestIds.contains(dedupeKey) else { return [] }
+        seenRequestIds.insert(dedupeKey)
 
-        let inputTokens = usage?.inputTokens ?? 0
-        let outputTokens = usage?.outputTokens ?? 0
-        let cacheCreationTokens = usage?.cacheCreationInputTokens ?? 0
-        let cacheReadTokens = usage?.cacheReadInputTokens ?? 0
-        let cost = extractCost(from: json) ?? 0
-
-        return MonthlyUsageSample(
+        let sample = MonthlyUsageSample(
             month: month,
-            model: model,
-            inputTokens: inputTokens,
-            outputTokens: outputTokens,
-            cacheCreationInputTokens: cacheCreationTokens,
-            cacheReadInputTokens: cacheReadTokens,
-            costUSD: cost
+            model: model ?? "unknown",
+            inputTokens: totalInput,
+            outputTokens: totalOutput,
+            cacheCreationInputTokens: 0,
+            cacheReadInputTokens: totalCached,
+            costUSD: 0
         )
-    }
-
-    private func extractUsage(from json: [String: Any]) -> CodexUsageTokens? {
-        let candidates = [
-            json["usage"] as? [String: Any],
-            (json["response"] as? [String: Any])?["usage"] as? [String: Any],
-            (json["message"] as? [String: Any])?["usage"] as? [String: Any]
-        ].compactMap { $0 }
-
-        for usage in candidates {
-            let input = intValue(from: usage["input_tokens"])
-                ?? intValue(from: usage["prompt_tokens"])
-                ?? intValue(from: usage["inputTokens"])
-            let output = intValue(from: usage["output_tokens"])
-                ?? intValue(from: usage["completion_tokens"])
-                ?? intValue(from: usage["outputTokens"])
-            let cacheCreation = intValue(from: usage["cache_creation_input_tokens"])
-                ?? intValue(from: usage["cacheCreationInputTokens"])
-            let cacheRead = intValue(from: usage["cache_read_input_tokens"])
-                ?? intValue(from: usage["cacheReadInputTokens"])
-
-            if input != nil || output != nil || cacheCreation != nil || cacheRead != nil {
-                return CodexUsageTokens(
-                    inputTokens: input ?? 0,
-                    outputTokens: output ?? 0,
-                    cacheCreationInputTokens: cacheCreation ?? 0,
-                    cacheReadInputTokens: cacheRead ?? 0
-                )
-            }
-        }
-
-        return nil
-    }
-
-    private func extractTimestamp(from json: [String: Any]) -> Date? {
-        let candidates: [Any?] = [
-            json["timestamp"],
-            json["created_at"],
-            json["created"],
-            json["time"],
-            (json["response"] as? [String: Any])?["created_at"],
-            (json["response"] as? [String: Any])?["created"],
-            (json["message"] as? [String: Any])?["timestamp"]
-        ]
-
-        for candidate in candidates {
-            if let date = parseDate(candidate) {
-                return date
-            }
-        }
-
-        return nil
-    }
-
-    private func extractModel(from json: [String: Any]) -> String? {
-        if let model = json["model"] as? String { return model }
-        if let model = (json["request"] as? [String: Any])?["model"] as? String { return model }
-        if let model = (json["response"] as? [String: Any])?["model"] as? String { return model }
-        if let model = (json["message"] as? [String: Any])?["model"] as? String { return model }
-        return nil
-    }
-
-    private func extractCost(from json: [String: Any]) -> Double? {
-        let candidates: [Any?] = [
-            json["cost"],
-            json["cost_usd"],
-            json["costUSD"],
-            json["usd_cost"],
-            (json["response"] as? [String: Any])?["cost"],
-            (json["response"] as? [String: Any])?["cost_usd"]
-        ]
-        for candidate in candidates {
-            if let value = doubleValue(from: candidate) {
-                return value
-            }
-        }
-        return nil
-    }
-
-    private func parseDate(_ value: Any?) -> Date? {
-        if let string = value as? String {
-            let formatter = ISO8601DateFormatter()
-            formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-            if let date = formatter.date(from: string) {
-                return date
-            }
-            formatter.formatOptions = [.withInternetDateTime]
-            return formatter.date(from: string)
-        }
-        if let number = doubleValue(from: value) {
-            let timestamp = number > 2_000_000_000_000 ? number / 1000.0 : number
-            return Date(timeIntervalSince1970: timestamp)
-        }
-        return nil
+        return [sample]
     }
 
     private func intValue(from value: Any?) -> Int? {
@@ -234,18 +210,4 @@ final class CodexJSONLService: Sendable {
         if let stringValue = value as? String, let intValue = Int(stringValue) { return intValue }
         return nil
     }
-
-    private func doubleValue(from value: Any?) -> Double? {
-        if let doubleValue = value as? Double { return doubleValue }
-        if let intValue = value as? Int { return Double(intValue) }
-        if let stringValue = value as? String, let doubleValue = Double(stringValue) { return doubleValue }
-        return nil
-    }
-}
-
-private struct CodexUsageTokens {
-    let inputTokens: Int
-    let outputTokens: Int
-    let cacheCreationInputTokens: Int
-    let cacheReadInputTokens: Int
 }
