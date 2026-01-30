@@ -1,6 +1,6 @@
 //
 //  UpdateManager.swift
-//  ClaudeUsageWidget
+//  AgentUsageWidget
 //
 //  Sparkle update manager for background app with gentle reminders
 //

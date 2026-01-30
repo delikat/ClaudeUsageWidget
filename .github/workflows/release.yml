@@ -18,9 +18,9 @@ jobs:
   release:
     runs-on: macos-latest
     env:
-      APP_NAME: ClaudeUsageWidget
-      WORKSPACE: ClaudeUsageWidget.xcworkspace
-      SCHEME: ClaudeUsageWidget
+      APP_NAME: AgentUsageWidget
+      WORKSPACE: AgentUsageWidget.xcworkspace
+      SCHEME: AgentUsageWidget
       CONFIGURATION: Release
       KEYCHAIN_PASSWORD: ${{ secrets.CERTIFICATE_PASSWORD }}
     steps:
@@ -94,8 +94,8 @@ jobs:
 
       - name: Sign app and extensions
         env:
-          ENTITLEMENTS_APP: Config/ClaudeUsageWidget.entitlements
-          ENTITLEMENTS_CLAUDE: ClaudeUsageWidgetExtension/ClaudeUsageWidgetExtension.entitlements
+          ENTITLEMENTS_APP: Config/AgentUsageWidget.entitlements
+          ENTITLEMENTS_CLAUDE: AgentUsageWidgetExtension/AgentUsageWidgetExtension.entitlements
           ENTITLEMENTS_CODEX: CodexUsageWidgetExtension/CodexUsageWidgetExtension.entitlements
         run: |
           set -euo pipefail
@@ -169,7 +169,7 @@ jobs:
 
           for appex in "$APP_PATH/Contents/PlugIns/"*.appex; do
             case "$(basename "$appex")" in
-              ClaudeUsageWidgetExtension.appex) entitlements="$ENTITLEMENTS_CLAUDE" ;;
+              AgentUsageWidgetExtension.appex) entitlements="$ENTITLEMENTS_CLAUDE" ;;
               CodexUsageWidgetExtension.appex) entitlements="$ENTITLEMENTS_CODEX" ;;
               *) entitlements="" ;;
             esac

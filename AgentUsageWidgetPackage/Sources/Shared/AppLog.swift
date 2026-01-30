@@ -1,7 +1,7 @@
 import os
 
 public enum AppLog {
-    private static let subsystem = "com.delikat.claudewidget"
+    private static let subsystem = "com.delikat.agentusagewidget"
 
     public static let app = Logger(subsystem: subsystem, category: "App")
     public static let cache = Logger(subsystem: subsystem, category: "Cache")

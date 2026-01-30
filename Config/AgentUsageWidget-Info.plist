@@ -4,7 +4,7 @@
 <dict>
 	<!-- Sparkle Update Configuration -->
 	<key>SUFeedURL</key>
-	<string>https://adelikat.github.io/ClaudeUsageWidget/appcast.xml</string>
+	<string>https://adelikat.github.io/AgentUsageWidget/appcast.xml</string>
 
 	<key>SUPublicEDKey</key>
 	<string>TO_BE_GENERATED</string>

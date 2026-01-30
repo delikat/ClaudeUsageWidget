@@ -3,7 +3,7 @@
 import PackageDescription
 
 let package = Package(
-    name: "ClaudeUsageWidgetPackage",
+    name: "AgentUsageWidgetPackage",
     platforms: [.macOS(.v14)],
     products: [
         .library(

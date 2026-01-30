@@ -2,7 +2,7 @@ import SwiftUI
 import Shared
 
 @main
-struct ClaudeUsageWidgetApp: App {
+struct AgentUsageWidgetApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
     var body: some Scene {
@@ -81,7 +81,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private let updateManager = UpdateManager.shared
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        AppLog.app.info("ClaudeUsageWidget: App launched")
+        AppLog.app.info("AgentUsageWidget: App launched")
 
         // Initialize Sparkle updates (already starts via shared singleton)
         _ = updateManager
@@ -95,7 +95,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             object: nil,
             queue: .main
         ) { _ in
-            AppLog.app.info("ClaudeUsageWidget: Received Claude refresh notification from widget")
+            AppLog.app.info("AgentUsageWidget: Received Claude refresh notification from widget")
             Task {
                 await UsageService.shared.fetchAndCache()
                 await ClaudeJSONLService.shared.fetchAndCache()
@@ -108,7 +108,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             object: nil,
             queue: .main
         ) { _ in
-            AppLog.app.info("ClaudeUsageWidget: Received Codex refresh notification from widget")
+            AppLog.app.info("AgentUsageWidget: Received Codex refresh notification from widget")
             Task {
                 await self.refreshCodexIfAvailable()
                 await CodexJSONLService.shared.fetchAndCache()
@@ -121,7 +121,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             object: nil,
             queue: .main
         ) { _ in
-            AppLog.app.info("ClaudeUsageWidget: Received Claude monthly refresh notification from widget")
+            AppLog.app.info("AgentUsageWidget: Received Claude monthly refresh notification from widget")
             Task {
                 await UsageService.shared.fetchAndCache()
                 await ClaudeJSONLService.shared.fetchAndCache()
@@ -134,7 +134,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             object: nil,
             queue: .main
         ) { _ in
-            AppLog.app.info("ClaudeUsageWidget: Received Codex monthly refresh notification from widget")
+            AppLog.app.info("AgentUsageWidget: Received Codex monthly refresh notification from widget")
             Task {
                 await self.refreshCodexIfAvailable()
                 await CodexJSONLService.shared.fetchAndCache()
@@ -176,7 +176,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func schedulePeriodicRefresh() {
         // Refresh every 15 minutes
         refreshTimer = Timer.scheduledTimer(withTimeInterval: 15 * 60, repeats: true) { _ in
-            AppLog.app.debug("ClaudeUsageWidget: Periodic refresh triggered")
+            AppLog.app.debug("AgentUsageWidget: Periodic refresh triggered")
             self.refreshAll()
         }
     }
@@ -184,7 +184,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func scheduleHistoryUpdates() {
         // Update history every hour (HistoryService has internal throttling too)
         historyTimer = Timer.scheduledTimer(withTimeInterval: 60 * 60, repeats: true) { _ in
-            AppLog.app.debug("ClaudeUsageWidget: Periodic history update triggered")
+            AppLog.app.debug("AgentUsageWidget: Periodic history update triggered")
             Task {
                 await HistoryService.shared.updateHistory()
             }
@@ -203,7 +203,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func refreshCodexIfAvailable() async {
         guard CodexCredentials.hasCredentials() else {
-            AppLog.app.debug("ClaudeUsageWidget: Skipping Codex refresh (no credentials)")
+            AppLog.app.debug("AgentUsageWidget: Skipping Codex refresh (no credentials)")
             return
         }
         await CodexUsageService.shared.fetchAndCache()

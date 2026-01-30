@@ -60,12 +60,12 @@ jobs:
           mkdir -p releases
 
           gh release download "${{ steps.release_tag.outputs.tag }}" \
-            -p "ClaudeUsageWidget-*.zip" \
+            -p "AgentUsageWidget-*.zip" \
             -D releases/ \
             --clobber
 
           # Verify download
-          ZIP_FILE=$(ls releases/ClaudeUsageWidget-*.zip 2>/dev/null | head -1)
+          ZIP_FILE=$(ls releases/AgentUsageWidget-*.zip 2>/dev/null | head -1)
           if [ -z "$ZIP_FILE" ]; then
             echo "Error: No release zip found"
             exit 1
@@ -75,7 +75,7 @@ jobs:
       - name: Extract Version Info
         run: |
           set -euo pipefail
-          ZIP_FILE=$(ls releases/ClaudeUsageWidget-*.zip | head -1)
+          ZIP_FILE=$(ls releases/AgentUsageWidget-*.zip | head -1)
           unzip -q "$ZIP_FILE" -d releases/temp
 
           APP_PATH=$(find releases/temp -name "*.app" -type d | head -1)

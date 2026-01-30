@@ -18,7 +18,7 @@
                BlueprintIdentifier = "DDDD00112233445500000004"
                BuildableName = "WidgetSnapshotTests.xctest"
                BlueprintName = "WidgetSnapshotTests"
-               ReferencedContainer = "container:ClaudeUsageWidget.xcodeproj">
+               ReferencedContainer = "container:AgentUsageWidget.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -36,7 +36,7 @@
                BlueprintIdentifier = "DDDD00112233445500000004"
                BuildableName = "WidgetSnapshotTests.xctest"
                BlueprintName = "WidgetSnapshotTests"
-               ReferencedContainer = "container:ClaudeUsageWidget.xcodeproj">
+               ReferencedContainer = "container:AgentUsageWidget.xcodeproj">
             </BuildableReference>
          </TestableReference>
       </Testables>

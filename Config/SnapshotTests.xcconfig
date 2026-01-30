@@ -3,5 +3,5 @@
 
 #include "Shared.xcconfig"
 
-PRODUCT_BUNDLE_IDENTIFIER = com.delikat.claudewidget.snapshottests
+PRODUCT_BUNDLE_IDENTIFIER = com.delikat.agentusagewidget.snapshottests
 PRODUCT_MODULE_NAME = WidgetSnapshotTests
