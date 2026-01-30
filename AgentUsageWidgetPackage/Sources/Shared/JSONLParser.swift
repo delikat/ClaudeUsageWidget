@@ -116,7 +116,9 @@ public struct JSONLParser {
     }
 
     /// Parse a Codex JSONL file by extracting actual token counts from
-    /// `event_msg` lines with `payload.type == "token_count"`.
+    /// `event_msg` lines with `payload.type == "token_count"`. If no
+    /// token_count events are found, fall back to estimating tokens from
+    /// message/content lines with legacy timestamps.
     private static func parseCodexJSONLFile(at url: URL) -> [ConversationEntry] {
         guard let data = try? Data(contentsOf: url),
               let content = String(data: data, encoding: .utf8) else {
@@ -124,6 +126,7 @@ public struct JSONLParser {
         }
 
         var entries: [ConversationEntry] = []
+        var fallbackEntries: [ConversationEntry] = []
         let lines = content.components(separatedBy: .newlines)
 
         let dateFormatter = ISO8601DateFormatter()
@@ -144,9 +147,27 @@ public struct JSONLParser {
 
             guard let eventType = json["type"] as? String, eventType == "event_msg",
                   let payload = json["payload"] as? [String: Any],
-                  let payloadType = payload["type"] as? String, payloadType == "token_count",
-                  let tsStr = json["timestamp"] as? String,
-                  let timestamp = dateFormatter.date(from: tsStr) ?? fallbackFormatter.date(from: tsStr) else {
+                  let payloadType = payload["type"] as? String, payloadType == "token_count" else {
+                let fallbackTokens = estimateTokensFromCodexMessage(json)
+                guard fallbackTokens > 0,
+                      let timestamp = parseCodexTimestamp(
+                          json,
+                          dateFormatter: dateFormatter,
+                          fallbackFormatter: fallbackFormatter
+                      ) else {
+                    continue
+                }
+                fallbackEntries.append(
+                    ConversationEntry(timestamp: timestamp, estimatedTokens: fallbackTokens, provider: .codex)
+                )
+                continue
+            }
+
+            guard let timestamp = parseCodexTimestamp(
+                json,
+                dateFormatter: dateFormatter,
+                fallbackFormatter: fallbackFormatter
+            ) else {
                 continue
             }
 
@@ -185,7 +206,7 @@ public struct JSONLParser {
             entries.append(ConversationEntry(timestamp: timestamp, estimatedTokens: totalTokens, provider: .codex))
         }
 
-        return entries
+        return entries.isEmpty ? fallbackEntries : entries
     }
 
     private static func intValueFromAny(_ value: Any?) -> Int? {
@@ -201,21 +222,154 @@ public struct JSONLParser {
             return 0
         }
 
-        var totalChars = 0
-
-        // Handle content field - can be string or array
-        if let contentString = message["content"] as? String {
-            totalChars += contentString.count
-        } else if let contentArray = message["content"] as? [[String: Any]] {
-            for item in contentArray {
-                if let text = item["text"] as? String {
-                    totalChars += text.count
-                }
-            }
-        }
+        let totalChars = countCharacters(in: message["content"])
+        guard totalChars > 0 else { return 0 }
 
         // Approximate tokens: ~4 characters per token
         return max(1, totalChars / 4)
+    }
+
+    private static func estimateTokensFromCodexMessage(_ json: [String: Any]) -> Int {
+        var totalChars = 0
+        if let message = json["message"] as? [String: Any] {
+            totalChars += countCharacters(in: message["content"])
+        } else if let content = json["content"] {
+            totalChars += countCharacters(in: content)
+        } else if let text = json["text"] as? String {
+            totalChars += text.count
+        }
+        if totalChars == 0, let payload = json["payload"] as? [String: Any] {
+            if let message = payload["message"] as? [String: Any] {
+                totalChars += countCharacters(in: message["content"])
+            } else if let content = payload["content"] {
+                totalChars += countCharacters(in: content)
+            } else if let text = payload["text"] as? String {
+                totalChars += text.count
+            }
+        }
+
+        guard totalChars > 0 else { return 0 }
+        return max(1, totalChars / 4)
+    }
+
+    private static func countCharacters(in value: Any?) -> Int {
+        guard let value else { return 0 }
+        if let stringValue = value as? String {
+            return stringValue.count
+        }
+        if let arrayValue = value as? [Any] {
+            return arrayValue.reduce(0) { $0 + countCharacters(in: $1) }
+        }
+        if let dictValue = value as? [String: Any] {
+            if let text = dictValue["text"] as? String {
+                return text.count
+            }
+            if let content = dictValue["content"] {
+                return countCharacters(in: content)
+            }
+        }
+        return 0
+    }
+
+    private static func parseCodexTimestamp(
+        _ json: [String: Any],
+        dateFormatter: ISO8601DateFormatter,
+        fallbackFormatter: ISO8601DateFormatter
+    ) -> Date? {
+        if let date = parseTimestampValue(
+            json["timestamp"],
+            dateFormatter: dateFormatter,
+            fallbackFormatter: fallbackFormatter
+        ) {
+            return date
+        }
+        if let date = parseTimestampValue(
+            json["createdAt"],
+            dateFormatter: dateFormatter,
+            fallbackFormatter: fallbackFormatter
+        ) {
+            return date
+        }
+        if let date = parseTimestampValue(
+            json["created_at"],
+            dateFormatter: dateFormatter,
+            fallbackFormatter: fallbackFormatter
+        ) {
+            return date
+        }
+        if let message = json["message"] as? [String: Any] {
+            if let date = parseTimestampValue(
+                message["timestamp"],
+                dateFormatter: dateFormatter,
+                fallbackFormatter: fallbackFormatter
+            ) {
+                return date
+            }
+            if let date = parseTimestampValue(
+                message["createdAt"],
+                dateFormatter: dateFormatter,
+                fallbackFormatter: fallbackFormatter
+            ) {
+                return date
+            }
+            if let date = parseTimestampValue(
+                message["created_at"],
+                dateFormatter: dateFormatter,
+                fallbackFormatter: fallbackFormatter
+            ) {
+                return date
+            }
+        }
+        if let payload = json["payload"] as? [String: Any] {
+            if let date = parseTimestampValue(
+                payload["timestamp"],
+                dateFormatter: dateFormatter,
+                fallbackFormatter: fallbackFormatter
+            ) {
+                return date
+            }
+            if let date = parseTimestampValue(
+                payload["createdAt"],
+                dateFormatter: dateFormatter,
+                fallbackFormatter: fallbackFormatter
+            ) {
+                return date
+            }
+            if let date = parseTimestampValue(
+                payload["created_at"],
+                dateFormatter: dateFormatter,
+                fallbackFormatter: fallbackFormatter
+            ) {
+                return date
+            }
+        }
+        return nil
+    }
+
+    private static func parseTimestampValue(
+        _ value: Any?,
+        dateFormatter: ISO8601DateFormatter,
+        fallbackFormatter: ISO8601DateFormatter
+    ) -> Date? {
+        if let stringValue = value as? String {
+            return dateFormatter.date(from: stringValue) ?? fallbackFormatter.date(from: stringValue)
+        }
+        if let numberValue = value as? NSNumber {
+            return dateFromEpoch(numberValue.doubleValue)
+        }
+        if let intValue = value as? Int {
+            return dateFromEpoch(Double(intValue))
+        }
+        if let doubleValue = value as? Double {
+            return dateFromEpoch(doubleValue)
+        }
+        return nil
+    }
+
+    private static func dateFromEpoch(_ value: Double) -> Date? {
+        guard value > 0 else { return nil }
+        let seconds = value > 10_000_000_000 ? value / 1000.0 : value
+        return Date(timeIntervalSince1970: seconds)
     }
 
 }

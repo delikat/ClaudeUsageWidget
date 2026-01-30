@@ -110,11 +110,11 @@ final class CodexJSONLService: Sendable {
         guard !seenRequestIds.contains(dedupeKey) else { return [] }
         seenRequestIds.insert(dedupeKey)
 
-        let resolvedModel = parser.model ?? "gpt-5"
+        let resolvedModel = parser.model ?? "unknown"
         // Codex input_tokens includes cached as a subset, so split them
         // to avoid billing cached tokens at both full and cache-read rates.
         let nonCachedInput = max(parser.totalInput - parser.totalCached, 0)
-        let cost = CodexModelPricing.calculateCost(
+        let cost = parser.model == nil ? 0 : CodexModelPricing.calculateCost(
             model: resolvedModel,
             inputTokens: nonCachedInput,
             outputTokens: parser.totalOutput,

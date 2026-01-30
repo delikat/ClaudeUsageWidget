@@ -60,6 +60,7 @@ xcodebuild -workspace AgentUsageWidget.xcworkspace -scheme AgentUsageWidgetUITes
 - **Xcode Canvas previews do NOT work for macOS widgets.** You must run the main app to install the widget extension, then use WidgetKit Simulator or add the widget to the desktop to see changes.
 - **Snapshotting widgets:** Run the `WidgetSnapshotTests` scheme to render all widget variants to PNGs (light + dark). Defaults to `.context/widget-snapshots` with `-dark` filename suffix for dark mode. You can override the output directory via `WIDGET_SNAPSHOT_DIR`.
 - **After any visual change to widget views, run the snapshot tests and inspect the resulting PNGs to verify the change looks correct.**
+- **After any bug fix or substantial code change, run the relevant tests (at minimum `AgentUsageWidgetPackage` unit tests) before reporting back.**
 - **Updating widgets during development:** After building, run these commands to see changes immediately in WidgetKit Simulator (no restart needed):
   ```bash
   killall AgentUsageWidgetExtension CodexUsageWidgetExtension 2>/dev/null
