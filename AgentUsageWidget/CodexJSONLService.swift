@@ -112,7 +112,7 @@ final class CodexJSONLService: Sendable {
 
         let sample = MonthlyUsageSample(
             month: month,
-            model: parser.model ?? "unknown",
+            model: parser.model ?? "gpt-5",
             inputTokens: parser.totalInput,
             outputTokens: parser.totalOutput,
             cacheCreationInputTokens: 0,
