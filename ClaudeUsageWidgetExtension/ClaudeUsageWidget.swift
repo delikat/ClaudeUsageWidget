@@ -355,6 +355,7 @@ private struct TokenStat: View {
             Text(formattedTokens(value))
                 .font(.system(size: 12, weight: .semibold, design: .monospaced))
                 .monospacedDigit()
+                .fixedSize()
         }
     }
 }
