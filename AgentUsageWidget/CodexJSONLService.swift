@@ -110,14 +110,26 @@ final class CodexJSONLService: Sendable {
         guard !seenRequestIds.contains(dedupeKey) else { return [] }
         seenRequestIds.insert(dedupeKey)
 
+        let resolvedModel = parser.model ?? "unknown"
+        // Codex input_tokens includes cached as a subset, so split them
+        // to avoid billing cached tokens at both full and cache-read rates.
+        let nonCachedInput = max(parser.totalInput - parser.totalCached, 0)
+        let cost = parser.model == nil ? 0 : CodexModelPricing.calculateCost(
+            model: resolvedModel,
+            inputTokens: nonCachedInput,
+            outputTokens: parser.totalOutput,
+            cacheCreationInputTokens: 0,
+            cacheReadInputTokens: parser.totalCached
+        )
+
         let sample = MonthlyUsageSample(
             month: month,
-            model: parser.model ?? "gpt-5",
+            model: resolvedModel,
             inputTokens: parser.totalInput,
             outputTokens: parser.totalOutput,
             cacheCreationInputTokens: 0,
             cacheReadInputTokens: parser.totalCached,
-            costUSD: 0
+            costUSD: cost
         )
         return [sample]
     }
